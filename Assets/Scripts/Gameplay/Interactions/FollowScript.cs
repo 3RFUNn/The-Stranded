@@ -12,7 +12,7 @@ public class FollowScript : MonoBehaviour
     public float stopFollowingDistance = 10f;
     public float attackRange = 2f;
     public int attackDamage = 10;
-    public float attackInterval;
+    public float attackInterval = 2.0f;
     private bool isFollowing = false;
     private float lastAttackTime;
 
