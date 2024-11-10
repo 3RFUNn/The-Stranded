@@ -10,8 +10,11 @@ public class FollowScript : MonoBehaviour
     public Transform player;
     public float startFollowingDistance = 10f; 
     public float stopFollowingDistance = 10f;
-
-    private bool isFollowing = false; 
+    public float attackRange = 2f;
+    public int attackDamage = 10;
+    public float attackInterval;
+    private bool isFollowing = false;
+    private float lastAttackTime;
 
     // Start is called before the first frame update
     void Start()
@@ -37,6 +40,12 @@ public class FollowScript : MonoBehaviour
         if (isFollowing)
         {
             enemy.SetDestination(player.position);
+
+            if (distanceToPlayer < attackRange && Time.time >= lastAttackTime + attackInterval)
+            {
+                player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
+                lastAttackTime = Time.time;
+            }
         }
         else
         {
