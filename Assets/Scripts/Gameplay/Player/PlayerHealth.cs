@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using TMPro;
+using System;
+using UnityEngine.UI;
+using Unity.VisualScripting;
 public class PlayerHealth : MonoBehaviour
 {
 
@@ -9,32 +12,31 @@ public class PlayerHealth : MonoBehaviour
     private int currentHealth;
     public HealthBar healthBar;
 
+    public GameObject youDied;
+
+    [SerializeField] private TextMeshProUGUI currentHealthText;
+
     // Start is called before the first frame update
     void Start()
     {
         currentHealth = maxHealth;
-        healthBar.SetMaxHealth(maxHealth);
+        healthBar.SetHealth(maxHealth);
     }
 
     public void TakeDamage( int damage)
     {
-        currentHealth += damage;
-        healthBar.SetHealth(currentHealth);
+        Debug.Log("Take Damage!");
+        currentHealth -= damage;
+        healthBar.SetHealth(currentHealth, CheckAndUpdate);
+    }
 
-        if (currentHealth <= 0 )
-        {
-            Die();
+    void CheckAndUpdate(){
+        int updatedValue = Math.Clamp(currentHealth, 0, 100);
+        currentHealthText.text = updatedValue.ToString();
+        if (currentHealth <= 0 ){
+            youDied.SetActive(true);
+            Debug.Log("You Died!");
         }
     }
 
-    void Die()
-    {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

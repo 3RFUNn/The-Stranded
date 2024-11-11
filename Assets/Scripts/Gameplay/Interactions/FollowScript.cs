@@ -43,6 +43,7 @@ public class FollowScript : MonoBehaviour
 
             if (distanceToPlayer < attackRange && Time.time >= lastAttackTime + attackInterval)
             {
+                Debug.Log("Hitting the player!");
                 player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
                 lastAttackTime = Time.time;
             }

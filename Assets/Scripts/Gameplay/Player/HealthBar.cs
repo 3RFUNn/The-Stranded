@@ -6,38 +6,29 @@ using UnityEngine.UI;
 public class HealthBar : MonoBehaviour
 {
     public Slider slider;
+    public Image bar;
 
-    private float currentDisplayedHealth;
-    // Start is called before the first frame update
-    void Start()
+    public void SetHealth( int health, System.Action callback = null)
     {
-        currentDisplayedHealth = slider.value;
-    }
+        Debug.Log("slider value before: "+ slider.value);
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (currentDisplayedHealth != slider.value)
-        {
-            currentDisplayedHealth = Mathf.Lerp(currentDisplayedHealth, slider.value, Time.deltaTime * 10);
-
-            slider.value = currentDisplayedHealth;
+        slider.value = health;
+        if(health <= 30){
+            bar.color = Color.red;
+        }else if(health <= 70){
+            Color orangeColor;
+            if (ColorUtility.TryParseHtmlString("#FFA500", out orangeColor))
+            {
+                bar.color = orangeColor;
+            }else{
+                bar.color = Color.green;
+            }
+        }else{
+            bar.color = Color.green;
         }
 
-    }
+        Debug.Log("slider value after: "+ slider.value);
+        callback?.Invoke();
 
-    public void SetMaxHealth( int health)
-    {
-        slider.maxValue = health;
-
-        slider.value = health;
-
-        currentDisplayedHealth = health;
-    }
-
-
-    public void SetHealth( int health)
-    {
-        slider.value = health;
     }
 }
