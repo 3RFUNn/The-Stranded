@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 public class RaySystem : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class RaySystem : MonoBehaviour
 
     [SerializeField] private float maxReflectionDistance = 50f;
 
-    private const int totalReflectionsAllowed = 4;
+    private const int totalReflectionsAllowed = 5;
 
     // Set to store unique mirrors encountered during reflection
     private HashSet<Transform> uniqueMirrors = new HashSet<Transform>();
@@ -53,7 +54,7 @@ public class RaySystem : MonoBehaviour
                     // }
                     Debug.Log("reflections "+ reflections);
                     Debug.Log("totalReflectionsAllowed "+ totalReflectionsAllowed);
-                    if (reflections == (totalReflectionsAllowed - 1)) {
+                    if (reflections == (totalReflectionsAllowed-1)) {
                         Debug.Log("Successfully Hit");
                     }
 
