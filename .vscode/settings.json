@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "The-Stranded.sln"
+    "dotnet.defaultSolution": "Group-Project-Multi-Platform.sln"
 }
