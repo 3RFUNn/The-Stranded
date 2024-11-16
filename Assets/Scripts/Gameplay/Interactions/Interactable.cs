@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace Gameplay.Interactions
 {
-    public class Interactable : MonoBehaviour
+    public abstract class Interactable : MonoBehaviour
     {
-        public string PromptTextInUI;
+        public string promptUIText;
         public virtual void Interact()
         {
             // Base interaction method. This will be overridden by derived classes.

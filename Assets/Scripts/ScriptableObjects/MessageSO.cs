@@ -6,6 +6,7 @@ using UnityEngine;
 public class MessageSO : ScriptableObject
 {
     public string messageTitle;
-    [TextArea(5, 17)]
+    public bool hasViewed;
+    [TextArea(5, 15)]
     public List<string> messages;
 }

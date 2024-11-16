@@ -4,6 +4,7 @@ using Gameplay.Interactions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -11,8 +12,10 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField]
     private Interactable interactable; // Reference to interactable object
     public PlayerInput PlayerInput;
-    public TextMeshProUGUI PromptText;
+    public TextMeshProUGUI promptText;
+    public RectTransform promptUI;
 
+    
     void Update()
     {
         CheckForInteractable();
@@ -38,18 +41,25 @@ public class PlayerInteraction : MonoBehaviour
             if (hitInteractable != null)
             {
                 interactable = hitInteractable;
-                PromptText.text = interactable.PromptTextInUI;
+                promptText.text = interactable.promptUIText;
+                //update the layout immediately to fit new text's length
+                LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
+                promptUI.gameObject.SetActive(true);
             }
             else
             {
                 interactable = null;
-                PromptText.text = null;
+                promptUI.gameObject.SetActive(false);
+                promptText.text = "";
+                LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
             }
         }
         else
         {
             interactable = null;
-            PromptText.text = null;
+            promptUI.gameObject.SetActive(false);
+            promptText.text = "";
+            LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
         }
     }
 
@@ -62,7 +72,7 @@ public class PlayerInteraction : MonoBehaviour
 
     public void OnUIExit(InputAction.CallbackContext ctx){
         if(ctx.started){
-            PromptText.enabled = true;
+            promptText.enabled = true;
             PlayerInput.SwitchCurrentActionMap("Player");
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
