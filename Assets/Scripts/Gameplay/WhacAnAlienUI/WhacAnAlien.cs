@@ -20,13 +20,10 @@ public class WhacAnAlien : Interactable
     public bool Started,isCountingDown;
     //public WhacAnAlienPuzzleState state;
 
-    private bool _hasClicked;
-
     void Start()
     {
         Started = false;
         timer = CountDown;
-        _hasClicked = false;
         isCountingDown = false;
     }
 
@@ -94,10 +91,3 @@ public class WhacAnAlien : Interactable
     }
 
 }
-
-//public enum WhacAnAlienPuzzleState{
-//    Initialize,
-//    Play,
-//    CountDown,
-//    Stop
-//}

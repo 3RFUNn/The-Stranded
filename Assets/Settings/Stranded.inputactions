@@ -87,7 +87,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "NextPage",
+                    "name": "TabletNext",
                     "type": "Button",
                     "id": "ace9c396-edf4-40a5-ab77-8fc3730eaaca",
                     "expectedControlType": "Button",
@@ -96,7 +96,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "PrevPage",
+                    "name": "TabletPrev",
                     "type": "Button",
                     "id": "36243edb-3c4a-4298-9c9f-177522ea824b",
                     "expectedControlType": "Button",
@@ -105,7 +105,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "ExitTablet",
+                    "name": "TabletAction",
                     "type": "Button",
                     "id": "6f808f58-466e-4cf5-a93f-51f735e1f606",
                     "expectedControlType": "Button",
@@ -408,7 +408,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "NextPage",
+                    "action": "TabletNext",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -419,7 +419,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "PrevPage",
+                    "action": "TabletPrev",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -430,7 +430,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ExitTablet",
+                    "action": "TabletAction",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -7,19 +7,21 @@ public class ItemCollectible : Interactable
 {
     public string itemName; // Set this in the Inspector, e.g., "Wood" or "Stone"
     [SerializeField] private GameObject player;
+    
 
     public override void Interact()
     {
-            InventoryManager inventory = player.GetComponent<InventoryManager>();
+        InventoryManager inventory = player.GetComponent<InventoryManager>();
             
-            if (inventory != null)
-            {
-                
-                inventory.CollectItem(itemName);
-                Destroy(gameObject); // Destroy the collectible item after picking it up
-                Debug.Log(itemName + " collected");
-                
-            }
+        if (inventory != null)
+        {
+            inventory.CollectItem(itemName);
+            Destroy(gameObject); // Destroy the collectible item after picking it up
+            Debug.Log(itemName + " collected");
+        }
+
+
+
         
     }
 }
