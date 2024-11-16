@@ -10,9 +10,11 @@ public class GamePhaseManager : MonoBehaviour
     public Animator introCameraAnimator;
     public GameObject Player;
     public Camera mainCamera, cutSceneCamera;
-    public GameObject UI;
+    public GameObject UI, MainMenu;
     public PlayerInput input;
     public EnemySpawner enemySpawner;
+
+    public GameObject playerCamera, player;
     // Start is called before the first frame update
     void Start()
     {
@@ -38,11 +40,14 @@ public class GamePhaseManager : MonoBehaviour
     public void afterIntro(){
         Player.transform.position = cutSceneCamera.transform.position;
         mainCamera.transform.rotation = cutSceneCamera.transform.rotation;
-        Destroy(cutSceneCamera.transform.parent.gameObject);
+        cutSceneCamera.transform.parent.gameObject.SetActive(false);
         enemySpawner.enabled = false;
         mainCamera.enabled = true;
-        Player.SetActive(true);
+        MainMenu.SetActive(false);
         UI.SetActive(true);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        Player.SetActive(true);
         input.enabled = true;
     }
 }

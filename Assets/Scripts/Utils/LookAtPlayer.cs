@@ -1,12 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
 public class LookAtPlayer : MonoBehaviour
 {
     [SerializeField] private GameObject player;
 
     public bool onlyChangeYRotation = false;
+
+    private void Start() {
+        if(player == null){
+            player = GamePhaseManager.instance.playerCamera;
+        }
+    }
 
     void Update()
     {
