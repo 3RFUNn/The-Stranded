@@ -264,7 +264,7 @@ public class BaseEnemy : MonoBehaviour
         }
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        if (distanceToPlayer <= attackRange)
+        if (distanceToPlayer <= attackRange + 1f)
         {
             player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
         }
