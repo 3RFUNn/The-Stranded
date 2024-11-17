@@ -1,4 +1,4 @@
-// BaseEnemy.cs - Abstract base class for all enemies
+// BaseEnemy.cs
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
@@ -18,13 +18,11 @@ public class BaseEnemy : MonoBehaviour
 
     [Header("Combat Settings")] 
     [SerializeField] protected int attackDamage = 10;
-
     [SerializeField] protected float attackInterval = 2.0f;
     protected float lastAttackTime;
 
     [Header("Patrol Settings")] 
     [SerializeField] protected float patrolRadius = 20f;
-
     [SerializeField] protected float waitTimeAtPatrolPoint = 3f;
     protected Vector3 currentPatrolPoint;
     protected bool isWaitingAtPatrolPoint;
@@ -45,6 +43,19 @@ public class BaseEnemy : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
 
+        // Verify components
+        if (agent == null)
+        {
+            Debug.LogError($"NavMeshAgent missing on {gameObject.name}!");
+            return;
+        }
+
+        if (player == null)
+        {
+            Debug.LogError("Player not found! Make sure it has the 'Player' tag.");
+            return;
+        }
+
         // Start with patrol state
         ChangeState(EnemyState.Patrolling);
         SetNewPatrolPoint();
@@ -56,6 +67,8 @@ public class BaseEnemy : MonoBehaviour
         UpdateState(distanceToPlayer);
         HandleCurrentState();
     }
+    
+   
 
     protected virtual void UpdateState(float distanceToPlayer)
     {
@@ -112,21 +125,50 @@ public class BaseEnemy : MonoBehaviour
         if (isWaitingAtPatrolPoint)
             return;
 
-        if (Vector3.Distance(transform.position, currentPatrolPoint) < 1f)
+        float distanceToPatrolPoint = Vector3.Distance(transform.position, currentPatrolPoint);
+        
+        // Use a smaller threshold for stopping
+        if (distanceToPatrolPoint < 0.3f)  // Reduced from 1f to 0.3f
         {
+            // Immediately stop the agent and snap to position
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;  // Reset velocity to prevent sliding
+            
+            // Optional: Snap to exact patrol point to prevent tiny movements
+            transform.position = new Vector3(
+                currentPatrolPoint.x,
+                transform.position.y,
+                currentPatrolPoint.z
+            );
+            
             StartCoroutine(WaitAtPatrolPoint());
         }
         else
         {
-            agent.SetDestination(currentPatrolPoint);
-            UpdateAnimation("IsWalking", true);
+            Vector3 directionToTarget = (currentPatrolPoint - transform.position).normalized;
+            float angle = Vector3.Angle(transform.forward, directionToTarget);
+
+            if (angle > 30f)
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;  // Reset velocity when stopping to rotate
+                FaceTarget(currentPatrolPoint);
+                UpdateAnimation("IsIdle", true);
+            }
+            else
+            {
+                agent.isStopped = false;
+                agent.SetDestination(currentPatrolPoint);
+                UpdateAnimation("IsWalking", true);
+            }
         }
     }
 
     protected virtual void HandlePursuing()
     {
+        if (!agent.isOnNavMesh || player == null) return;
+        
         agent.SetDestination(player.position);
-        FaceTarget(player.position);
         UpdateAnimation("IsRunning", true);
     }
 
@@ -143,11 +185,10 @@ public class BaseEnemy : MonoBehaviour
     {
         Vector3 fleeDirection = transform.position - player.position;
         Vector3 fleePosition = transform.position + fleeDirection.normalized * safeDistance;
-
+        
         if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, safeDistance, NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
-            // Face away from player while fleeing
             FaceTarget(transform.position + fleeDirection);
             UpdateAnimation("IsRunning", true);
         }
@@ -157,14 +198,12 @@ public class BaseEnemy : MonoBehaviour
     {
         lastAttackTime = Time.time;
         UpdateAnimation("IsAttacking", true);
-
-        // Play attack sound
+        
         if (attackSounds.Length > 0)
         {
             PlayRandomSound(attackSounds);
         }
 
-        // Apply damage to player
         if (Vector3.Distance(transform.position, player.position) <= attackRange)
         {
             player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
@@ -186,26 +225,31 @@ public class BaseEnemy : MonoBehaviour
     protected virtual IEnumerator WaitAtPatrolPoint()
     {
         isWaitingAtPatrolPoint = true;
+        
+        // Ensure the agent is fully stopped
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+        
         UpdateAnimation("IsIdle", true);
-
-        // Play idle sound
+        
         if (idleSounds.Length > 0)
         {
             PlayRandomSound(idleSounds);
         }
 
         yield return new WaitForSeconds(waitTimeAtPatrolPoint);
-
+        
         SetNewPatrolPoint();
         isWaitingAtPatrolPoint = false;
     }
 
+    // Option 2: Faster Slerp (very quick but still smooth)
     protected virtual void FaceTarget(Vector3 target)
     {
         Vector3 directionToTarget = (target - transform.position).normalized;
         directionToTarget.y = 0;
         Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 1000f);
     }
 
     protected virtual void ChangeState(EnemyState newState)
@@ -218,6 +262,13 @@ public class BaseEnemy : MonoBehaviour
     {
         if (animator != null)
         {
+            // First reset all animations
+            animator.SetBool("IsIdle", false);
+            animator.SetBool("IsWalking", false);
+            animator.SetBool("IsRunning", false);
+            animator.SetBool("IsAttacking", false);
+
+            // Then set the desired animation
             animator.SetBool(parameterName, value);
         }
     }
