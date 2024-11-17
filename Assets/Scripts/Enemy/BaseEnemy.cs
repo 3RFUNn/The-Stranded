@@ -4,6 +4,8 @@ using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
 
+
+
 public class BaseEnemy : MonoBehaviour
 {
     [Header("Components")] 
@@ -27,6 +29,10 @@ public class BaseEnemy : MonoBehaviour
     protected Vector3 currentPatrolPoint;
     protected bool isWaitingAtPatrolPoint;
 
+    [Header("Animation Settings")]
+    [SerializeField] protected float animationBlendSpeed = 8f;
+    protected float currentAnimationBlend = 0f;
+
     [Header("Audio")] 
     [SerializeField] protected AudioClip[] attackSounds;
     [SerializeField] protected AudioClip[] movementSounds;
@@ -34,6 +40,7 @@ public class BaseEnemy : MonoBehaviour
 
     protected Transform player;
     protected EnemyState currentState;
+    protected bool isTransitioningAnimation = false;
 
     protected virtual void Start()
     {
@@ -42,6 +49,8 @@ public class BaseEnemy : MonoBehaviour
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
+
+       
 
         // Verify components
         if (agent == null)
@@ -67,8 +76,6 @@ public class BaseEnemy : MonoBehaviour
         UpdateState(distanceToPlayer);
         HandleCurrentState();
     }
-    
-   
 
     protected virtual void UpdateState(float distanceToPlayer)
     {
@@ -76,26 +83,67 @@ public class BaseEnemy : MonoBehaviour
         {
             case EnemyState.Patrolling:
                 if (distanceToPlayer <= detectionRange)
-                    ChangeState(EnemyState.Pursuing);
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
+                }
                 break;
 
             case EnemyState.Pursuing:
                 if (distanceToPlayer <= attackRange)
-                    ChangeState(EnemyState.Attacking);
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Attacking));
+                }
                 else if (distanceToPlayer > detectionRange)
-                    ChangeState(EnemyState.Patrolling);
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
+                }
                 break;
 
             case EnemyState.Attacking:
-                if (distanceToPlayer > attackRange)
-                    ChangeState(EnemyState.Pursuing);
+                if (distanceToPlayer > attackRange + 0.5f)
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
+                }
                 break;
 
             case EnemyState.Fleeing:
                 if (distanceToPlayer >= safeDistance)
-                    ChangeState(EnemyState.Patrolling);
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
+                }
                 break;
         }
+    }
+
+    protected IEnumerator SmoothStateTransition(EnemyState newState)
+    {
+        if (isTransitioningAnimation)
+            yield break;
+
+        isTransitioningAnimation = true;
+
+        // Smoothly blend out current animation
+        float currentBlend = 1f;
+        while (currentBlend > 0)
+        {
+            currentBlend -= Time.deltaTime * animationBlendSpeed;
+            UpdateAnimationBlend(currentBlend);
+            yield return null;
+        }
+
+        // Change state
+        ChangeState(newState);
+
+        // Smoothly blend in new animation
+        currentBlend = 0f;
+        while (currentBlend < 1)
+        {
+            currentBlend += Time.deltaTime * animationBlendSpeed;
+            UpdateAnimationBlend(currentBlend);
+            yield return null;
+        }
+
+        isTransitioningAnimation = false;
     }
 
     protected virtual void HandleCurrentState()
@@ -127,20 +175,9 @@ public class BaseEnemy : MonoBehaviour
 
         float distanceToPatrolPoint = Vector3.Distance(transform.position, currentPatrolPoint);
         
-        // Use a smaller threshold for stopping
-        if (distanceToPatrolPoint < 0.3f)  // Reduced from 1f to 0.3f
+        if (distanceToPatrolPoint < 0.3f)
         {
-            // Immediately stop the agent and snap to position
-            agent.isStopped = true;
-            agent.velocity = Vector3.zero;  // Reset velocity to prevent sliding
-            
-            // Optional: Snap to exact patrol point to prevent tiny movements
-            transform.position = new Vector3(
-                currentPatrolPoint.x,
-                transform.position.y,
-                currentPatrolPoint.z
-            );
-            
+            StopAndSnapToPosition(currentPatrolPoint);
             StartCoroutine(WaitAtPatrolPoint());
         }
         else
@@ -150,10 +187,7 @@ public class BaseEnemy : MonoBehaviour
 
             if (angle > 30f)
             {
-                agent.isStopped = true;
-                agent.velocity = Vector3.zero;  // Reset velocity when stopping to rotate
-                FaceTarget(currentPatrolPoint);
-                UpdateAnimation("IsIdle", true);
+                StopAndRotate(currentPatrolPoint);
             }
             else
             {
@@ -168,15 +202,25 @@ public class BaseEnemy : MonoBehaviour
     {
         if (!agent.isOnNavMesh || player == null) return;
         
+        agent.isStopped = false;
         agent.SetDestination(player.position);
         UpdateAnimation("IsRunning", true);
     }
 
     protected virtual void HandleAttacking()
     {
+        // Stop moving when attacking
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // Keep facing the player
         FaceTarget(player.position);
+
+        // Only set attacking animation, no idle
         if (Time.time >= lastAttackTime + attackInterval)
         {
+            animator.SetBool("IsIdle", false);
+            animator.SetBool("IsAttacking", true);
             PerformAttack();
         }
     }
@@ -194,19 +238,47 @@ public class BaseEnemy : MonoBehaviour
         }
     }
 
+    protected virtual void StopAndSnapToPosition(Vector3 position)
+    {
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+        transform.position = new Vector3(position.x, transform.position.y, position.z);
+        UpdateAnimation("IsIdle", true);
+    }
+
+    protected virtual void StopAndRotate(Vector3 targetPosition)
+    {
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+        FaceTarget(targetPosition);
+        UpdateAnimation("IsIdle", true);
+    }
+
     protected virtual void PerformAttack()
     {
         lastAttackTime = Time.time;
-        UpdateAnimation("IsAttacking", true);
         
         if (attackSounds.Length > 0)
         {
             PlayRandomSound(attackSounds);
         }
 
-        if (Vector3.Distance(transform.position, player.position) <= attackRange)
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (distanceToPlayer <= attackRange + 1f)
         {
             player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
+        }
+
+        // Start a coroutine to reset the attack animation after a delay
+        StartCoroutine(ResetAttackAnimation());
+    }
+
+    protected virtual IEnumerator ResetAttackAnimation()
+    {
+        yield return new WaitForSeconds(0.5f); // Adjust this time to match your attack animation length
+        if (currentState == EnemyState.Attacking)
+        {
+            animator.SetBool("IsAttacking", false);
         }
     }
 
@@ -214,9 +286,9 @@ public class BaseEnemy : MonoBehaviour
     {
         Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
         randomDirection += transform.position;
-        NavMeshHit hit;
+        randomDirection.y = transform.position.y; // Keep the same Y level
 
-        if (NavMesh.SamplePosition(randomDirection, out hit, patrolRadius, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
         {
             currentPatrolPoint = hit.position;
         }
@@ -243,13 +315,16 @@ public class BaseEnemy : MonoBehaviour
         isWaitingAtPatrolPoint = false;
     }
 
-    // Option 2: Faster Slerp (very quick but still smooth)
     protected virtual void FaceTarget(Vector3 target)
     {
         Vector3 directionToTarget = (target - transform.position).normalized;
-        directionToTarget.y = 0;
-        Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
-        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 1000f);
+        directionToTarget.y = 0; // Keep vertical rotation locked
+        
+        if (directionToTarget != Vector3.zero)
+        {
+            Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 1000f);
+        }
     }
 
     protected virtual void ChangeState(EnemyState newState)
@@ -258,17 +333,19 @@ public class BaseEnemy : MonoBehaviour
         ResetAnimations();
     }
 
-    protected virtual void UpdateAnimation(string parameterName, bool value)
+    protected virtual void UpdateAnimationBlend(float blend)
     {
         if (animator != null)
         {
-            // First reset all animations
-            animator.SetBool("IsIdle", false);
-            animator.SetBool("IsWalking", false);
-            animator.SetBool("IsRunning", false);
-            animator.SetBool("IsAttacking", false);
+            animator.SetLayerWeight(0, blend);
+        }
+    }
 
-            // Then set the desired animation
+    protected virtual void UpdateAnimation(string parameterName, bool value)
+    {
+        if (animator != null && !isTransitioningAnimation)
+        {
+            ResetAnimations();
             animator.SetBool(parameterName, value);
         }
     }
