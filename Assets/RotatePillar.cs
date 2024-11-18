@@ -26,8 +26,10 @@ public class RotatePillarImproved : MonoBehaviour
 
     void Update()
     {
-        DetectPillarOrMirror();
-        HandleInteraction();
+        if(!AppHelper.gameEnded){
+            DetectPillarOrMirror();
+            HandleInteraction();
+        }
     }
 
     void DetectPillarOrMirror()
@@ -58,7 +60,7 @@ public class RotatePillarImproved : MonoBehaviour
             interactionText.enabled = currentPillar != null;
             if (currentPillar != null)
             {
-                interactionText.text = "Press T to Rotate Clockwise\nY to Rotate Anti-Clockwise";
+                interactionText.text = "T: Clockwise | Y: Anti-Clockwise";
             }
         }
     }

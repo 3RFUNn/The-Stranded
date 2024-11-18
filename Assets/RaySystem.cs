@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using TMPro;
 
 public class RaySystem : MonoBehaviour
 {
@@ -16,6 +17,10 @@ public class RaySystem : MonoBehaviour
 
     private Color originalGemColor;
     private Color originalLineColor;
+
+    [SerializeField] private GameObject EndScreenUI;
+
+    [SerializeField] private TextMeshProUGUI text;
 
     private void Start() {
         // Store the original color of the gem
@@ -73,6 +78,11 @@ public class RaySystem : MonoBehaviour
                     // The gem is successfully hit if all mirrors are unique and total reflections match
                     if (uniqueMirrors.Count == reflections && reflections == (totalReflectionsAllowed - 1)) {
                         gemHitSuccessfully = true;
+                        AppHelper.stopCrushing = true;
+                        text.color= Color.yellow;
+                        text.text = "VICTORY!";
+                        EndScreenUI.gameObject.SetActive(true);
+                        AppHelper.gameEnded = true;
                         Debug.Log("Successfully Hit");
                     }
 
