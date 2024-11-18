@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: monster4
-    second: {fileID: 2100000, guid: 2101436cf7502494397f8eff6a875efb, type: 2}
+    second: {fileID: 2100000, guid: e7b4b9a07cfb0494e9f6cf8ae372ac9c, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
@@ -37,12 +37,7 @@ ModelImporter:
     removeConstantScaleCurves: 0
     motionNodeName: 
     animationImportErrors: 
-    animationImportWarnings: "\nClip 'CINEMA_4D_Main' has import animation warnings
-      that might lower retargeting quality:\nNote: Activate translation DOF on avatar
-      to improve retargeting quality.\n\t'R_foot' is inbetween humanoid transforms
-      and has rotation animation that will be discarded.\n\t'L_foot' is inbetween
-      humanoid transforms and has rotation animation that will be discarded.\n\t'chest'
-      is inbetween humanoid transforms and has rotation animation that will be discarded.\n"
+    animationImportWarnings: 
     animationRetargetingWarnings: 
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
