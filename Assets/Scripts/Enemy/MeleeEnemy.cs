@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections;
 
 public class MeleeEnemy : BaseEnemy
 {
@@ -18,6 +17,42 @@ public class MeleeEnemy : BaseEnemy
     {
         agent.speed = chargeSpeed;
         base.HandlePursuing();
+    }
+
+    protected override void HandleAttacking()
+    {
+        // Stop moving when attacking
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+
+        // Keep facing the player
+        FaceTarget(player.position);
+
+        // Only attack if enough time has passed since last attack
+        if (Time.time >= lastAttackTime + attackInterval)
+        {
+            animator.SetBool("IsIdle", false);
+            animator.SetBool("IsAttacking", true);
+            PerformAttack();
+        }
+    }
+
+    protected override void PerformAttack()
+    {
+        lastAttackTime = Time.time;
+        
+        if (attackSounds.Length > 0)
+        {
+            PlayRandomSound(attackSounds);
+        }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (distanceToPlayer <= attackRange + 1f)
+        {
+            player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
+        }
+
+        StartCoroutine(ResetAttackAnimation());
     }
 
     protected override void ChangeState(EnemyState newState)

@@ -4,9 +4,7 @@ using UnityEngine.AI;
 using System.Collections;
 using System.Collections.Generic;
 
-
-
-public class BaseEnemy : MonoBehaviour
+public abstract class BaseEnemy : MonoBehaviour
 {
     [Header("Components")] 
     protected NavMeshAgent agent;
@@ -44,15 +42,22 @@ public class BaseEnemy : MonoBehaviour
 
     protected virtual void Start()
     {
-        // Initialize components
+        InitializeComponents();
+        VerifyComponents();
+        ChangeState(EnemyState.Patrolling);
+        SetNewPatrolPoint();
+    }
+
+    protected virtual void InitializeComponents()
+    {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
+    }
 
-       
-
-        // Verify components
+    protected virtual void VerifyComponents()
+    {
         if (agent == null)
         {
             Debug.LogError($"NavMeshAgent missing on {gameObject.name}!");
@@ -64,10 +69,6 @@ public class BaseEnemy : MonoBehaviour
             Debug.LogError("Player not found! Make sure it has the 'Player' tag.");
             return;
         }
-
-        // Start with patrol state
-        ChangeState(EnemyState.Patrolling);
-        SetNewPatrolPoint();
     }
 
     protected virtual void Update()
@@ -113,37 +114,6 @@ public class BaseEnemy : MonoBehaviour
                 }
                 break;
         }
-    }
-
-    protected IEnumerator SmoothStateTransition(EnemyState newState)
-    {
-        if (isTransitioningAnimation)
-            yield break;
-
-        isTransitioningAnimation = true;
-
-        // Smoothly blend out current animation
-        float currentBlend = 1f;
-        while (currentBlend > 0)
-        {
-            currentBlend -= Time.deltaTime * animationBlendSpeed;
-            UpdateAnimationBlend(currentBlend);
-            yield return null;
-        }
-
-        // Change state
-        ChangeState(newState);
-
-        // Smoothly blend in new animation
-        currentBlend = 0f;
-        while (currentBlend < 1)
-        {
-            currentBlend += Time.deltaTime * animationBlendSpeed;
-            UpdateAnimationBlend(currentBlend);
-            yield return null;
-        }
-
-        isTransitioningAnimation = false;
     }
 
     protected virtual void HandleCurrentState()
@@ -207,24 +177,10 @@ public class BaseEnemy : MonoBehaviour
         UpdateAnimation("IsRunning", true);
     }
 
-    protected virtual void HandleAttacking()
-    {
-        // Stop moving when attacking
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
+    // Made abstract to force implementation in derived classes
+    protected abstract void HandleAttacking();
 
-        // Keep facing the player
-        FaceTarget(player.position);
-
-        // Only set attacking animation, no idle
-        if (Time.time >= lastAttackTime + attackInterval)
-        {
-            animator.SetBool("IsIdle", false);
-            animator.SetBool("IsAttacking", true);
-            PerformAttack();
-        }
-    }
-
+    // Made virtual with default fleeing behavior
     protected virtual void HandleFleeing()
     {
         Vector3 fleeDirection = transform.position - player.position;
@@ -235,6 +191,18 @@ public class BaseEnemy : MonoBehaviour
             agent.SetDestination(hit.position);
             FaceTarget(transform.position + fleeDirection);
             UpdateAnimation("IsRunning", true);
+        }
+    }
+
+    // Made abstract to force implementation in derived classes
+    protected abstract void PerformAttack();
+
+    protected virtual IEnumerator ResetAttackAnimation()
+    {
+        yield return new WaitForSeconds(0.5f);
+        if (currentState == EnemyState.Attacking)
+        {
+            animator.SetBool("IsAttacking", false);
         }
     }
 
@@ -254,39 +222,11 @@ public class BaseEnemy : MonoBehaviour
         UpdateAnimation("IsIdle", true);
     }
 
-    protected virtual void PerformAttack()
-    {
-        lastAttackTime = Time.time;
-        
-        if (attackSounds.Length > 0)
-        {
-            PlayRandomSound(attackSounds);
-        }
-
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        if (distanceToPlayer <= attackRange + 1f)
-        {
-            player.GetComponent<PlayerHealth>().TakeDamage(attackDamage);
-        }
-
-        // Start a coroutine to reset the attack animation after a delay
-        StartCoroutine(ResetAttackAnimation());
-    }
-
-    protected virtual IEnumerator ResetAttackAnimation()
-    {
-        yield return new WaitForSeconds(0.5f); // Adjust this time to match your attack animation length
-        if (currentState == EnemyState.Attacking)
-        {
-            animator.SetBool("IsAttacking", false);
-        }
-    }
-
     protected virtual void SetNewPatrolPoint()
     {
         Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
         randomDirection += transform.position;
-        randomDirection.y = transform.position.y; // Keep the same Y level
+        randomDirection.y = transform.position.y;
 
         if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
         {
@@ -297,11 +237,8 @@ public class BaseEnemy : MonoBehaviour
     protected virtual IEnumerator WaitAtPatrolPoint()
     {
         isWaitingAtPatrolPoint = true;
-        
-        // Ensure the agent is fully stopped
         agent.isStopped = true;
         agent.velocity = Vector3.zero;
-        
         UpdateAnimation("IsIdle", true);
         
         if (idleSounds.Length > 0)
@@ -318,7 +255,7 @@ public class BaseEnemy : MonoBehaviour
     protected virtual void FaceTarget(Vector3 target)
     {
         Vector3 directionToTarget = (target - transform.position).normalized;
-        directionToTarget.y = 0; // Keep vertical rotation locked
+        directionToTarget.y = 0;
         
         if (directionToTarget != Vector3.zero)
         {
@@ -331,6 +268,34 @@ public class BaseEnemy : MonoBehaviour
     {
         currentState = newState;
         ResetAnimations();
+    }
+
+    protected IEnumerator SmoothStateTransition(EnemyState newState)
+    {
+        if (isTransitioningAnimation)
+            yield break;
+
+        isTransitioningAnimation = true;
+
+        float currentBlend = 1f;
+        while (currentBlend > 0)
+        {
+            currentBlend -= Time.deltaTime * animationBlendSpeed;
+            UpdateAnimationBlend(currentBlend);
+            yield return null;
+        }
+
+        ChangeState(newState);
+
+        currentBlend = 0f;
+        while (currentBlend < 1)
+        {
+            currentBlend += Time.deltaTime * animationBlendSpeed;
+            UpdateAnimationBlend(currentBlend);
+            yield return null;
+        }
+
+        isTransitioningAnimation = false;
     }
 
     protected virtual void UpdateAnimationBlend(float blend)
