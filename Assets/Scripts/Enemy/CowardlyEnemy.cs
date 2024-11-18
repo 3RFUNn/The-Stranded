@@ -16,30 +16,44 @@ public class CowardlyEnemy : BaseEnemy
 
     protected override void UpdateState(float distanceToPlayer)
     {
-        // Override the normal state transitions if player is too close
-        if (distanceToPlayer <= fleeThreshold)
+        // Completely override base behavior
+        switch (currentState)
         {
-            if (currentState != EnemyState.Fleeing)
-            {
+            case EnemyState.Patrolling:
+                // If player gets within detection range, immediately flee
+                if (distanceToPlayer <= fleeThreshold)
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
+                    agent.speed = fleeSpeed;
+                }
+                break;
+
+            case EnemyState.Fleeing:
+                // Return to patrolling only when we're at a safe distance
+                if (distanceToPlayer >= safeDistance)
+                {
+                    StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
+                    agent.speed = normalSpeed;
+                }
+                break;
+
+            // If somehow ended up in these states, switch to fleeing
+            case EnemyState.Pursuing:
+            case EnemyState.Attacking:
                 StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
                 agent.speed = fleeSpeed;
-            }
-        }
-        else
-        {
-            // Only use base behavior if we're not too close to player
-            base.UpdateState(distanceToPlayer);
+                break;
         }
     }
 
-    // Override and leave empty to prevent any attack behavior
+    // Override and prevent base behavior to ensure no attacking
     protected override void HandleAttacking()
     {
-        // Immediately switch to fleeing if we somehow end up in attack state
+        // Immediately switch to fleeing
         StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
     }
 
-    // Override and leave empty to prevent any attack behavior
+    // Override and prevent base behavior to ensure no attacking
     protected override void PerformAttack()
     {
         // No attack behavior for cowardly enemy
@@ -47,23 +61,39 @@ public class CowardlyEnemy : BaseEnemy
 
     protected override void HandleFleeing()
     {
+        // Calculate the direction away from the player
         Vector3 fleeDirection = transform.position - player.position;
         Vector3 fleePosition = transform.position + fleeDirection.normalized * safeDistance;
         
-        if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, safeDistance, NavMesh.AllAreas))
+        NavMeshHit hit;
+        // Try to find a valid position to flee to
+        if (NavMesh.SamplePosition(fleePosition, out hit, safeDistance, NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
-            FaceTarget(transform.position + fleeDirection); // Face away from player while fleeing
+            // Always face away from the player while fleeing
+            Vector3 lookPosition = transform.position + fleeDirection;
+            FaceTarget(lookPosition);
             UpdateAnimation("IsRunning", true);
         }
     }
 
+    protected override void HandlePursuing()
+    {
+        // Override to prevent any pursuit behavior
+        StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
+    }
+
     protected override void ChangeState(EnemyState newState)
     {
-        if (newState != EnemyState.Fleeing)
+        // Only allow Patrolling or Fleeing states
+        if (newState != EnemyState.Fleeing && newState != EnemyState.Patrolling)
         {
-            agent.speed = normalSpeed;
+            newState = EnemyState.Fleeing;
         }
+
+        // Update speed based on state
+        agent.speed = (newState == EnemyState.Fleeing) ? fleeSpeed : normalSpeed;
+        
         base.ChangeState(newState);
     }
 }
