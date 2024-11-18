@@ -8,6 +8,9 @@ public static class AppHelper
     public static string playerName = "Guest";       // Player's name
     public static bool isSoundEnabled = true;        // Sound setting
     public static List<string> unlockedLevels = new List<string>(); // List of unlocked levels
+    public static bool stopCrushing = false;
+
+    public static bool gameEnded = false;
 
     // Example of a method to reset the data
     public static void ResetData()
