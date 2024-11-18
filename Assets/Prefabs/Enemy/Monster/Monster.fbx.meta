@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: monster4
-    second: {fileID: 2100000, guid: e7b4b9a07cfb0494e9f6cf8ae372ac9c, type: 2}
+    second: {fileID: 2100000, guid: 24b5860224805404da81cd43ff8fa932, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
