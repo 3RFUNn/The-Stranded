@@ -6,72 +6,148 @@ using Unity.AI.Navigation;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject enemyPrefab;      // The enemy prefab to spawn
-    [SerializeField] private int numberOfEnemies = 5;     // Number of enemies to spawn
-    [SerializeField] private NavMeshSurface navMeshSurface; // Reference to the NavMeshSurface
-    [SerializeField] private float spawnRadius = 20f;     // Radius around the spawner to generate random positions
-
-    private List<Vector3> debugPositions = new List<Vector3>(); // Store positions for debugging
-
-    void Start()
+    [System.Serializable]
+    public class EnemyConfig
     {
-        if (navMeshSurface != null)
-        {
-            SpawnEnemies();
-        }
-        else
+        public GameObject prefab;
+        public EnemyType type;
+        public int count = 2;
+    }
+
+    public enum EnemyType
+    {
+        Melee,
+        Ranged,
+        Cowardly
+    }
+
+    [SerializeField] private List<EnemyConfig> enemyConfigs = new List<EnemyConfig>();
+    [SerializeField] private NavMeshSurface navMeshSurface;
+    [SerializeField] private float spawnRadius = 20f;
+    
+    private void Start()
+    {
+        if (navMeshSurface == null)
         {
             Debug.LogError("NavMeshSurface reference is missing!");
+            return;
         }
-    }
 
-    private void SpawnEnemies()
-    {
-        Debug.Log("Spawning enemies...");
-
-        for (int i = 0; i < numberOfEnemies; i++)
+        // Ensure NavMesh is built
+        navMeshSurface.BuildNavMesh();
+        
+        // Spawn all enemies
+        foreach (var config in enemyConfigs)
         {
-            Vector3 randomPosition = GetRandomPositionWithinRadius(transform.position, spawnRadius);
-
-            if (randomPosition != Vector3.zero)
+            if (config.prefab == null)
             {
-                Instantiate(enemyPrefab, randomPosition, Quaternion.identity);
-                debugPositions.Add(randomPosition); // Add valid positions to debug
-                Debug.Log($"Enemy {i} spawned at: {randomPosition}");
+                Debug.LogError($"Enemy prefab for {config.type} is missing!");
+                continue;
             }
-            else
+
+            // Verify the prefab has the correct component
+            if (!VerifyPrefabComponent(config))
             {
-                Debug.LogWarning($"Enemy {i} could not find a valid NavMesh position.");
+                Debug.LogError($"Enemy prefab for {config.type} is missing required component!");
+                continue;
+            }
+
+            for (int i = 0; i < config.count; i++)
+            {
+                SpawnEnemy(config);
             }
         }
     }
 
-    private Vector3 GetRandomPositionWithinRadius(Vector3 center, float radius)
+    private bool VerifyPrefabComponent(EnemyConfig config)
     {
-        // Generate a random position within a sphere and project it onto the NavMesh
-        Vector3 randomPosition = center + Random.insideUnitSphere * radius;
-        randomPosition.y = center.y; // Keep the Y coordinate consistent with the spawner's position
-
-        Debug.Log("Generated Random Position: " + randomPosition);
-
-        // Check if the position is valid on the NavMesh
-        if (NavMesh.SamplePosition(randomPosition, out NavMeshHit hit, 10.0f, NavMesh.AllAreas))
+        switch (config.type)
         {
-            debugPositions.Add(hit.position); // Add valid NavMesh position to debug
-            Debug.Log("Valid NavMesh Position Found: " + hit.position);
-            return hit.position;
+            case EnemyType.Melee:
+                return config.prefab.GetComponent<MeleeEnemy>() != null;
+            case EnemyType.Ranged:
+                return config.prefab.GetComponent<RangedEnemy>() != null;
+            case EnemyType.Cowardly:
+                return config.prefab.GetComponent<CowardlyEnemy>() != null;
+            default:
+                return false;
         }
-
-        Debug.LogWarning("NavMesh.SamplePosition failed at: " + randomPosition);
-        return Vector3.zero; // Return zero if invalid
     }
 
-    private void OnDrawGizmos()
+    private void SpawnEnemy(EnemyConfig config)
     {
-        Gizmos.color = Color.red;
-        foreach (Vector3 pos in debugPositions)
+        // Check if player exists before spawning
+        if (GameObject.FindGameObjectWithTag("Player") == null)
         {
-            Gizmos.DrawSphere(pos, 0.5f); // Draw a red sphere for each debug position
+            Debug.LogError("Cannot spawn enemies: Player not found in scene!");
+            return;
         }
+        
+        Vector3 spawnPosition = GetRandomPositionOnNavMesh();
+        if (spawnPosition == Vector3.zero)
+        {
+            Debug.LogWarning($"Could not find valid spawn position for {config.type} enemy");
+            return;
+        }
+
+        // Instantiate the enemy
+        GameObject enemyObject = Instantiate(config.prefab, spawnPosition, Quaternion.identity);
+
+        // Get the specific enemy component based on type
+        BaseEnemy enemy = null;
+        switch (config.type)
+        {
+            case EnemyType.Melee:
+                enemy = enemyObject.GetComponent<MeleeEnemy>();
+                break;
+            case EnemyType.Ranged:
+                enemy = enemyObject.GetComponent<RangedEnemy>();
+                break;
+            case EnemyType.Cowardly:
+                enemy = enemyObject.GetComponent<CowardlyEnemy>();
+                break;
+        }
+
+        if (enemy == null)
+        {
+            Debug.LogError($"Failed to get enemy component for {config.type}");
+            Destroy(enemyObject);
+            return;
+        }
+
+        // Initialize NavMeshAgent
+        NavMeshAgent agent = enemyObject.GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.Warp(spawnPosition); // This ensures proper placement on NavMesh
+        }
+
+        Debug.Log($"Successfully spawned {config.type} enemy at {spawnPosition}");
+    }
+
+    private Vector3 GetRandomPositionOnNavMesh()
+    {
+        for (int i = 0; i < 30; i++)
+        {
+            Vector3 randomPoint = transform.position + Random.insideUnitSphere * spawnRadius;
+            randomPoint.y = transform.position.y; // Keep the same height as spawner
+
+            if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, 10.0f, NavMesh.AllAreas))
+            {
+                // Double check it's really on the NavMesh
+                if (NavMesh.FindClosestEdge(hit.position, out NavMeshHit edgeHit, NavMesh.AllAreas))
+                {
+                    return hit.position;
+                }
+            }
+        }
+        return Vector3.zero;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // Draw spawn radius
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, spawnRadius);
     }
 }

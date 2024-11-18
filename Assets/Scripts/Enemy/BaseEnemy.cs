@@ -10,6 +10,7 @@ public abstract class BaseEnemy : MonoBehaviour
     protected NavMeshAgent agent;
     protected Animator animator;
     protected AudioSource audioSource;
+    
 
     [Header("Detection Settings")] 
     [SerializeField] protected float detectionRange = 10f;
@@ -39,13 +40,27 @@ public abstract class BaseEnemy : MonoBehaviour
     protected Transform player;
     protected EnemyState currentState;
     protected bool isTransitioningAnimation = false;
+    private bool isInitialized = false;
+
+     protected virtual void Awake()
+    {
+        // Try to find player immediately on Awake
+        FindPlayer();
+    }
 
     protected virtual void Start()
     {
         InitializeComponents();
-        VerifyComponents();
-        ChangeState(EnemyState.Patrolling);
-        SetNewPatrolPoint();
+        if (VerifyComponents())
+        {
+            ChangeState(EnemyState.Patrolling);
+            SetNewPatrolPoint();
+        }
+        else
+        {
+            // If components aren't verified, disable the script
+            enabled = false;
+        }
     }
 
     protected virtual void InitializeComponents()
@@ -53,26 +68,73 @@ public abstract class BaseEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
-        player = GameObject.FindGameObjectWithTag("Player").transform;
+        
+        // Try to find player again if not found in Awake
+        if (player == null)
+        {
+            FindPlayer();
+        }
     }
 
-    protected virtual void VerifyComponents()
+    private void FindPlayer()
     {
+        if (player == null)
+        {
+            // First try finding by tag
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+                Debug.Log($"Player found by {gameObject.name}");
+            }
+            else
+            {
+                // If tag fails, try finding specific player component
+                playerObj = GameObject.FindObjectOfType<PlayerHealth>()?.gameObject;
+                if (playerObj != null)
+                {
+                    player = playerObj.transform;
+                    Debug.Log($"Player found through PlayerHealth by {gameObject.name}");
+                }
+                else
+                {
+                    Debug.LogError($"Player not found by {gameObject.name}! Ensure player has 'Player' tag or PlayerHealth component!");
+                }
+            }
+        }
+    }
+
+    protected virtual bool VerifyComponents()
+    {
+        bool isValid = true;
+
         if (agent == null)
         {
             Debug.LogError($"NavMeshAgent missing on {gameObject.name}!");
-            return;
+            isValid = false;
         }
 
         if (player == null)
         {
-            Debug.LogError("Player not found! Make sure it has the 'Player' tag.");
-            return;
+            Debug.LogError($"Player reference not found for {gameObject.name}!");
+            isValid = false;
         }
+
+        return isValid;
     }
 
     protected virtual void Update()
     {
+        // Add null check for player
+        if (player == null)
+        {
+            FindPlayer(); // Try to find player again
+            if (player == null) // If still null, skip update
+            {
+                return;
+            }
+        }
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         UpdateState(distanceToPlayer);
         HandleCurrentState();
