@@ -12,6 +12,7 @@ public class HintUIController : MonoBehaviour
         // Ensure the HintUIPanel is disabled at the start if it is not already
         if (HintUIPanel != null)
         {
+            Debug.Log("Text disabled - start");
             HintText.SetActive(false);
             HintUIPanel.SetActive(true);
         }
@@ -30,7 +31,8 @@ public class HintUIController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.H) && !AppHelper.gameEnded)
         {
             ToggleHintPanel();
-            HintText.SetActive(!HintText.activeSelf);
+            Debug.Log("Hint text active state "+ !HintText.activeSelf);
+            
         }
     }
 
@@ -40,8 +42,10 @@ public class HintUIController : MonoBehaviour
         {
             // Toggle the active state of the HintUIPanel
             HintUIPanel.SetActive(!HintUIPanel.activeSelf);
+            HintText.SetActive(!HintUIPanel.activeSelf);
             if(!AppHelper.hintDisplayed){
                 AppHelper.hintDisplayed = true;
+                Debug.Log("Text enabled - Firt time");
                 HintText.SetActive(true);
             }
         }
