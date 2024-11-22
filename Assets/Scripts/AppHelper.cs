@@ -12,6 +12,8 @@ public static class AppHelper
 
     public static bool gameEnded = false;
 
+    public static bool hintDisplayed = false; 
+
     // Example of a method to reset the data
     public static void ResetData()
     {

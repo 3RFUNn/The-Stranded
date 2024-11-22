@@ -1,14 +1,15 @@
 using UnityEngine;
 using TMPro;
 
-public class RotatePillarImproved : MonoBehaviour
+public class RotatePillar: MonoBehaviour
 {
     [Header("Settings")]
     public float detectionRange = 3f; // Range to detect the pillar or its child mirror
     [Range(0f, 360f)] // Allows you to adjust in the Inspector with a slider
-    public float rotationAngle = 15f; // Angle to rotate the pillar
+    public float rotationAngle = 15f; // Angle to rotate the pillar incrementally
+    public float continuousRotationSpeed = 45f; // Speed for continuous rotation in degrees per second
 
-    public TextMeshProUGUI interactionText; // Text UI to display "Press T to Rotate"
+    public GameObject interactionText; // Text UI to display "Press T to Rotate"
 
     private Transform currentPillar; // Stores the currently detected pillar
 
@@ -17,18 +18,16 @@ public class RotatePillarImproved : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // Hide interaction text initially
-        if (interactionText != null)
-        {
-            interactionText.enabled = false;
-        }
     }
 
     void Update()
     {
-        if(!AppHelper.gameEnded){
+        if (!AppHelper.gameEnded)
+        {
             DetectPillarOrMirror();
             HandleInteraction();
+        }else{
+            interactionText.SetActive(false);
         }
     }
 
@@ -57,11 +56,7 @@ public class RotatePillarImproved : MonoBehaviour
         // Toggle interaction text based on detection
         if (interactionText != null)
         {
-            interactionText.enabled = currentPillar != null;
-            if (currentPillar != null)
-            {
-                interactionText.text = "T: Clockwise | Y: Anti-Clockwise";
-            }
+            interactionText.SetActive(currentPillar != null);
         }
     }
 
@@ -69,15 +64,15 @@ public class RotatePillarImproved : MonoBehaviour
     {
         if (currentPillar != null)
         {
-            if (Input.GetKeyDown(KeyCode.T))
+            if (Input.GetKey(KeyCode.T))
             {
-                // Rotate the pillar clockwise
-                RotateObject(currentPillar, rotationAngle);
+                // Rotate the pillar clockwise continuously
+                RotateObject(currentPillar, continuousRotationSpeed * Time.deltaTime);
             }
-            else if (Input.GetKeyDown(KeyCode.Y))
+            else if (Input.GetKey(KeyCode.Y))
             {
-                // Rotate the pillar anti-clockwise
-                RotateObject(currentPillar, -rotationAngle);
+                // Rotate the pillar anti-clockwise continuously
+                RotateObject(currentPillar, -continuousRotationSpeed * Time.deltaTime);
             }
         }
     }
