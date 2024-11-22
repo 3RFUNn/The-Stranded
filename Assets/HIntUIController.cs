@@ -11,7 +11,7 @@ public class HintUIController : MonoBehaviour
         // Ensure the HintUIPanel is disabled at the start if it is not already
         if (HintUIPanel != null)
         {
-            HintUIPanel.SetActive(false);
+            HintUIPanel.SetActive(true);
         }
         else
         {
@@ -22,7 +22,7 @@ public class HintUIController : MonoBehaviour
     void Update()
     {
         // Check if the H key is pressed
-        if (Input.GetKeyDown(KeyCode.H))
+        if (Input.GetKeyDown(KeyCode.H) && !AppHelper.gameEnded)
         {
             ToggleHintPanel();
         }
@@ -34,6 +34,9 @@ public class HintUIController : MonoBehaviour
         {
             // Toggle the active state of the HintUIPanel
             HintUIPanel.SetActive(!HintUIPanel.activeSelf);
+            if(!AppHelper.hintDisplayed){
+                AppHelper.hintDisplayed = true;
+            }
         }
     }
 }

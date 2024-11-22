@@ -35,7 +35,7 @@ public class CrushingWall : MonoBehaviour
     private void Update()
     {
         // Stop the animation if AppHelper.stopCrushing is true
-        if (AppHelper.stopCrushing && crushingTween != null && crushingTween.IsActive())
+        if (AppHelper.stopCrushing && crushingTween != null && crushingTween.IsActive() && AppHelper.hintDisplayed)
         {
             StopCrushing();
         }
