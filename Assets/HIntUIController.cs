@@ -5,12 +5,14 @@ using UnityEngine;
 public class HintUIController : MonoBehaviour
 {
     [SerializeField] private GameObject HintUIPanel; // Reference to the Hint UI Panel
+    [SerializeField] private GameObject HintText;
 
     void Start()
     {
         // Ensure the HintUIPanel is disabled at the start if it is not already
         if (HintUIPanel != null)
         {
+            HintText.SetActive(false);
             HintUIPanel.SetActive(true);
         }
         else
@@ -21,10 +23,14 @@ public class HintUIController : MonoBehaviour
 
     void Update()
     {
+        if(AppHelper.gameEnded){
+         HintText.SetActive(false);   
+        }
         // Check if the H key is pressed
         if (Input.GetKeyDown(KeyCode.H) && !AppHelper.gameEnded)
         {
             ToggleHintPanel();
+            HintText.SetActive(!HintText.activeSelf);
         }
     }
 
@@ -36,6 +42,7 @@ public class HintUIController : MonoBehaviour
             HintUIPanel.SetActive(!HintUIPanel.activeSelf);
             if(!AppHelper.hintDisplayed){
                 AppHelper.hintDisplayed = true;
+                HintText.SetActive(true);
             }
         }
     }

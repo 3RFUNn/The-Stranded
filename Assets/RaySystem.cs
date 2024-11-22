@@ -81,8 +81,8 @@ public class RaySystem : MonoBehaviour
                         AppHelper.stopCrushing = true;
                         text.color= Color.yellow;
                         text.text = "VICTORY!";
-                        EndScreenUI.gameObject.SetActive(true);
                         AppHelper.gameEnded = true;
+                        EndScreenUI.gameObject.SetActive(true);
                         Debug.Log("Successfully Hit");
                     }
 
