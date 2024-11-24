@@ -5,24 +5,30 @@ using UnityEngine.UIElements;
 
 public class EnemyHealth : MonoBehaviour
 {
-    public float health;
-    public Slider slider;
+
+    public int maxHealth = 100;
+    private int currentHealth;
+    public HealthBar healthBar;
+
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        currentHealth = maxHealth;
+        healthBar.SetHealth(maxHealth);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void TakeDamage( int damage)
     {
-        slider.value = health;
+        Debug.Log("Take Damage!");
+        currentHealth -= damage;
+        healthBar.SetHealth(currentHealth, CheckAndUpdate);
     }
-    private void OnCollisionEnter(Collision obj)
-    {
-        if (obj.gameObject.tag == "Player")
-            health = health - 10f;
+
+    void CheckAndUpdate(){
+        if(currentHealth <= 0){
+            Destroy(gameObject);
+        }
     }
 
 }
