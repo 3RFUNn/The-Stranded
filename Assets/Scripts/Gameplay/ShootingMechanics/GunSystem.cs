@@ -6,7 +6,7 @@ using TMPro;
 public class GunSystem : MonoBehaviour
 {
     //Gun stats
-    public int damage;
+    public int damage = 10;
     public float timeBetweenShooting, spread, range, reloadTime, timeBetweenShots;
     public int magazineSize, bulletsPerTap;
     public bool allowButtonHold;
@@ -88,9 +88,13 @@ public class GunSystem : MonoBehaviour
 
             if (rayHit.collider.CompareTag("Enemy"))
             {
-                //rayHit.collider.GetComponent<ShootingAi>().TakeDamage(damage); // To be done later
-                GameObject obj = rayHit.collider.gameObject;
-                Destroy(obj);
+                EnemyHealth health = rayHit.collider.GetComponent<EnemyHealth>();
+                if(health != null){
+                    health.TakeDamage(damage);
+                }else{
+                    GameObject obj = rayHit.collider.gameObject;
+                    Destroy(obj);
+                }
 
             }
         }
