@@ -9,6 +9,7 @@ public class EnemyHealth : MonoBehaviour
     public int maxHealth = 100;
     private int currentHealth;
     public HealthBar healthBar;
+    [SerializeField] private GameObject parent;
 
 
     // Start is called before the first frame update
