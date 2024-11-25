@@ -7,51 +7,84 @@ public class RangedEnemy : BaseEnemy
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private float projectileSpeed = 15f;
     [SerializeField] private float preferredDistance = 8f;
-    [SerializeField] private float normalSpeed = 3f;
-    [SerializeField] private Transform projectileSpawnPoint; // Optional: for better projectile spawning
+    [SerializeField] private float repositionThreshold = 2f;
+    [SerializeField] private Transform projectileSpawnPoint;
+    [SerializeField] private float strafeSpeed = 4f;
+    private Vector3 strafeTarget;
+    private bool isStrafeLeft = false;
+    private float nextStrafeChangeTime;
+    private float strafeChangeInterval = 2f;
 
     protected override void Start()
     {
         base.Start();
-        agent.speed = normalSpeed;
-        
-        // Verify required components
         if (projectilePrefab == null)
         {
             Debug.LogError($"Projectile prefab missing on {gameObject.name}!");
+            enabled = false;
         }
     }
 
     protected override void HandlePursuing()
     {
+        if (!agent.isOnNavMesh || player == null) return;
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         
-        if (distanceToPlayer < preferredDistance - 1f)
+        // Always face the player
+        FaceTarget(player.position);
+
+        if (Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
         {
-            // Back away if too close
-            Vector3 directionFromPlayer = transform.position - player.position;
-            Vector3 targetPosition = player.position + directionFromPlayer.normalized * preferredDistance;
+            // At ideal range, strafe
+            HandleStrafing();
+        }
+        else if (distanceToPlayer < preferredDistance - repositionThreshold)
+        {
+            // Too close, back away
+            Vector3 backawayDirection = transform.position - player.position;
+            Vector3 targetPosition = player.position + backawayDirection.normalized * preferredDistance;
             
             if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, preferredDistance, NavMesh.AllAreas))
             {
                 agent.SetDestination(hit.position);
-                UpdateAnimation("IsWalking", true);
+                UpdateAnimation("IsRunning", true);
             }
-        }
-        else if (distanceToPlayer > preferredDistance + 1f)
-        {
-            // Move closer if too far
-            agent.SetDestination(player.position);
-            UpdateAnimation("IsRunning", true);
         }
         else
         {
-            // At ideal range, stop and attack
-            StopAndRotate(player.position);
+            // Too far, move closer
+            agent.SetDestination(player.position);
+            UpdateAnimation("IsRunning", true);
+        }
+
+        // Check if we can attack from current position
+        if (CheckLineOfSight() && distanceToPlayer <= detectionRange &&
+            Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
+        {
             if (Time.time >= lastAttackTime + attackInterval)
             {
                 StartCoroutine(SmoothStateTransition(EnemyState.Attacking));
             }
+        }
+    }
+
+    private void HandleStrafing()
+    {
+        if (Time.time >= nextStrafeChangeTime)
+        {
+            isStrafeLeft = !isStrafeLeft;
+            nextStrafeChangeTime = Time.time + strafeChangeInterval;
+        }
+
+        Vector3 strafeDirection = isStrafeLeft ? -transform.right : transform.right;
+        Vector3 targetPosition = transform.position + strafeDirection * strafeSpeed;
+
+        // Ensure strafe position is valid
+        if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, strafeSpeed, NavMesh.AllAreas))
+        {
+            agent.SetDestination(hit.position);
+            UpdateAnimation("IsWalking", true);
         }
     }
 
@@ -64,16 +97,17 @@ public class RangedEnemy : BaseEnemy
         // Keep facing the player
         FaceTarget(player.position);
 
-        // Check if we can attack
-        if (Time.time >= lastAttackTime + attackInterval)
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        bool hasLineOfSight = CheckLineOfSight();
+
+        // Only attack if conditions are right
+        if (Time.time >= lastAttackTime + attackInterval && hasLineOfSight &&
+            Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
         {
-            animator.SetBool("IsAttacking", true);
+            UpdateAnimation("IsAttacking", true);
             PerformAttack();
         }
-
-        // Check if we should return to pursuing
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        if (Mathf.Abs(distanceToPlayer - preferredDistance) > 2f)
+        else if (!hasLineOfSight || Mathf.Abs(distanceToPlayer - preferredDistance) > repositionThreshold)
         {
             StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
         }
@@ -81,62 +115,48 @@ public class RangedEnemy : BaseEnemy
 
     protected override void PerformAttack()
     {
-        if (projectilePrefab == null) return;
+        if (projectilePrefab == null || player == null) return;
 
         lastAttackTime = Time.time;
         
-        // Play attack animation and sound
-        UpdateAnimation("IsAttacking", true);
+        // Play attack sound
         if (attackSounds.Length > 0)
         {
             PlayRandomSound(attackSounds);
         }
 
         // Calculate spawn position
-        Vector3 spawnPosition;
-        if (projectileSpawnPoint != null)
-        {
-            spawnPosition = projectileSpawnPoint.position;
-        }
-        else
-        {
-            spawnPosition = transform.position + transform.forward + Vector3.up;
-        }
+        Vector3 spawnPosition = projectileSpawnPoint != null 
+            ? projectileSpawnPoint.position 
+            : transform.position + transform.forward + Vector3.up;
 
-        // Spawn and configure projectile
+        // Spawn projectile
         GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
         Rigidbody projectileRb = projectile.GetComponent<Rigidbody>();
         
         if (projectileRb != null)
         {
-            // Calculate direction to player with slight upward arc
-            Vector3 directionToPlayer = (player.position - spawnPosition).normalized;
-            Vector3 arcedDirection = (directionToPlayer + Vector3.up * 0.1f).normalized;
+            // Calculate direction with prediction
+            Vector3 targetPosition = player.position + (player.GetComponent<Rigidbody>()?.velocity ?? Vector3.zero) * 
+                                   (Vector3.Distance(spawnPosition, player.position) / projectileSpeed);
             
-            // Apply velocity to projectile
+            Vector3 directionToTarget = (targetPosition - spawnPosition).normalized;
+            Vector3 arcedDirection = (directionToTarget + Vector3.up * 0.1f).normalized;
+            
             projectileRb.velocity = arcedDirection * projectileSpeed;
         }
 
-        // Start coroutine to reset attack animation
         StartCoroutine(ResetAttackAnimation());
     }
 
-    protected override void UpdateState(float distanceToPlayer)
+    protected override void UpdateState(float distanceToPlayer, bool canSeePlayer)
     {
-        // Only pursue or attack if within detection range but beyond flee threshold
-        if (distanceToPlayer <= detectionRange)
+        base.UpdateState(distanceToPlayer, canSeePlayer);
+
+        // Additional check for losing line of sight
+        if (currentState == EnemyState.Attacking && !canSeePlayer)
         {
-            if (currentState == EnemyState.Patrolling)
-            {
-                StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
-            }
-        }
-        else
-        {
-            if (currentState != EnemyState.Patrolling)
-            {
-                StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
-            }
+            StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
         }
     }
 }

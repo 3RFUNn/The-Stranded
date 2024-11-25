@@ -17,6 +17,10 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private TextMeshProUGUI currentHealthText;
 
     // Start is called before the first frame update
+
+    public int CurrentHealth => currentHealth;
+    
+    
     void Start()
     {
         currentHealth = maxHealth;
