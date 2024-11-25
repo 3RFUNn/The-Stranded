@@ -28,7 +28,7 @@ public class EnemyHealth : MonoBehaviour
 
     void CheckAndUpdate(){
         if(currentHealth <= 0){
-            Destroy(gameObject);
+            Destroy(parent);
         }
     }
 
