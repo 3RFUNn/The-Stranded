@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: a59b9202cdb93394781b8e79c967d8a3
+AssetOrigin:
+  serializedVersion: 1
+  productId: 89243
+  packageName: Character Monsters X
+  packageVersion: 3.0
+  assetPath: Assets/Creature_Monsters_X/Mesh/Mesh.FBX
+  uploadId: 196688
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable:
@@ -283,7 +290,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 1
+    animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -352,11 +359,11 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 0
+    hasExtraRoot: 1
     skeletonHasParents: 0
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 2
+  animationType: 3
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 0
@@ -366,10 +373,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 89243
-  packageName: Character Monsters X
-  packageVersion: 3.0
-  assetPath: Assets/Creature_Monsters_X/Mesh/Mesh.FBX
-  uploadId: 196688
