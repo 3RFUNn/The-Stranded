@@ -1,211 +1,224 @@
 fileFormatVersion: 2
-guid: fab7a72d5bfed564ab8361bfc3b7eeed
+guid: 5ada3917f98745f40b87f4d85808a977
+AssetOrigin:
+  serializedVersion: 1
+  productId: 89243
+  packageName: Character Monsters X
+  packageVersion: 3.0
+  assetPath: Assets/Creature_Monsters_X/Animation/Monster_X@Walk_Mec.FBX
+  uploadId: 196688
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable:
   - first:
       1: 100000
-    second: Body_mesh
+    second: Animation LayerTransform
   - first:
       1: 100002
-    second: CATRigHub001
+    second: Body_mesh
   - first:
       1: 100004
-    second: CATRigHub001Bone001
+    second: CATRigHub001
   - first:
       1: 100006
-    second: CATRigHub002
+    second: CATRigHub001Bone001
   - first:
       1: 100008
-    second: CATRigHub003
+    second: CATRigHub002
   - first:
       1: 100010
-    second: CATRigHub003Bone001
+    second: CATRigHub003
   - first:
       1: 100012
-    second: CATRigLArm1
+    second: CATRigHub003Bone001
   - first:
       1: 100014
-    second: CATRigLArm2
+    second: CATRigLArm1
   - first:
       1: 100016
-    second: CATRigLArmCollarbone
+    second: CATRigLArm2
   - first:
       1: 100018
-    second: CATRigLArmPalm
+    second: CATRigLArmCollarbone
   - first:
       1: 100020
-    second: CATRigLLeg1
+    second: CATRigLArmPalm
   - first:
       1: 100022
-    second: CATRigLLeg2
+    second: CATRigLLeg1
   - first:
       1: 100024
-    second: CATRigLLegAnkle
+    second: CATRigLLeg2
   - first:
       1: 100026
-    second: CATRigLLegPlatform
+    second: CATRigLLegAnkle
   - first:
       1: 100028
-    second: CATRigRArm1
+    second: CATRigLLegPlatform
   - first:
       1: 100030
-    second: CATRigRArm2
+    second: CATRigRArm1
   - first:
       1: 100032
-    second: CATRigRArmCollarbone
+    second: CATRigRArm2
   - first:
       1: 100034
-    second: CATRigRArmPalm
+    second: CATRigRArmCollarbone
   - first:
       1: 100036
-    second: CATRigRLeg1
+    second: CATRigRArmPalm
   - first:
       1: 100038
-    second: CATRigRLeg2
+    second: CATRigRLeg1
   - first:
       1: 100040
-    second: CATRigRLegAnkle
+    second: CATRigRLeg2
   - first:
       1: 100042
-    second: CATRigRLegPlatform
+    second: CATRigRLegAnkle
   - first:
       1: 100044
-    second: CATRigSpine
+    second: CATRigRLegPlatform
   - first:
       1: 100046
-    second: CATRigSpine1
+    second: CATRigSpine
   - first:
       1: 100048
-    second: CATRigSpine2
+    second: CATRigSpine1
   - first:
       1: 100050
-    second: Character
+    second: CATRigSpine2
   - first:
       1: 100052
-    second: Character001
+    second: Character
   - first:
       1: 100054
-    second: Clutches_mesh
+    second: Character001
   - first:
       1: 100056
-    second: Eyes_mesh
+    second: Clutches_mesh
   - first:
       1: 100058
-    second: Horns_mesh
+    second: Eyes_mesh
   - first:
       1: 100060
-    second: Lower_teeth_mesh
+    second: Horns_mesh
   - first:
       1: 100062
-    second: //RootNode
+    second: Lower_teeth_mesh
   - first:
       1: 100064
-    second: Thorns_mesh
+    second: //RootNode
   - first:
       1: 100066
+    second: Thorns_mesh
+  - first:
+      1: 100068
     second: Upper_teeth_mesh
   - first:
       4: 400000
-    second: Body_mesh
+    second: Animation LayerTransform
   - first:
       4: 400002
-    second: CATRigHub001
+    second: Body_mesh
   - first:
       4: 400004
-    second: CATRigHub001Bone001
+    second: CATRigHub001
   - first:
       4: 400006
-    second: CATRigHub002
+    second: CATRigHub001Bone001
   - first:
       4: 400008
-    second: CATRigHub003
+    second: CATRigHub002
   - first:
       4: 400010
-    second: CATRigHub003Bone001
+    second: CATRigHub003
   - first:
       4: 400012
-    second: CATRigLArm1
+    second: CATRigHub003Bone001
   - first:
       4: 400014
-    second: CATRigLArm2
+    second: CATRigLArm1
   - first:
       4: 400016
-    second: CATRigLArmCollarbone
+    second: CATRigLArm2
   - first:
       4: 400018
-    second: CATRigLArmPalm
+    second: CATRigLArmCollarbone
   - first:
       4: 400020
-    second: CATRigLLeg1
+    second: CATRigLArmPalm
   - first:
       4: 400022
-    second: CATRigLLeg2
+    second: CATRigLLeg1
   - first:
       4: 400024
-    second: CATRigLLegAnkle
+    second: CATRigLLeg2
   - first:
       4: 400026
-    second: CATRigLLegPlatform
+    second: CATRigLLegAnkle
   - first:
       4: 400028
-    second: CATRigRArm1
+    second: CATRigLLegPlatform
   - first:
       4: 400030
-    second: CATRigRArm2
+    second: CATRigRArm1
   - first:
       4: 400032
-    second: CATRigRArmCollarbone
+    second: CATRigRArm2
   - first:
       4: 400034
-    second: CATRigRArmPalm
+    second: CATRigRArmCollarbone
   - first:
       4: 400036
-    second: CATRigRLeg1
+    second: CATRigRArmPalm
   - first:
       4: 400038
-    second: CATRigRLeg2
+    second: CATRigRLeg1
   - first:
       4: 400040
-    second: CATRigRLegAnkle
+    second: CATRigRLeg2
   - first:
       4: 400042
-    second: CATRigRLegPlatform
+    second: CATRigRLegAnkle
   - first:
       4: 400044
-    second: CATRigSpine
+    second: CATRigRLegPlatform
   - first:
       4: 400046
-    second: CATRigSpine1
+    second: CATRigSpine
   - first:
       4: 400048
-    second: CATRigSpine2
+    second: CATRigSpine1
   - first:
       4: 400050
-    second: Character
+    second: CATRigSpine2
   - first:
       4: 400052
-    second: Character001
+    second: Character
   - first:
       4: 400054
-    second: Clutches_mesh
+    second: Character001
   - first:
       4: 400056
-    second: Eyes_mesh
+    second: Clutches_mesh
   - first:
       4: 400058
-    second: Horns_mesh
+    second: Eyes_mesh
   - first:
       4: 400060
-    second: Lower_teeth_mesh
+    second: Horns_mesh
   - first:
       4: 400062
-    second: //RootNode
+    second: Lower_teeth_mesh
   - first:
       4: 400064
-    second: Thorns_mesh
+    second: //RootNode
   - first:
       4: 400066
+    second: Thorns_mesh
+  - first:
+      4: 400068
     second: Upper_teeth_mesh
   - first:
       23: 2300000
@@ -248,7 +261,7 @@ ModelImporter:
     second: Clutches_mesh
   - first:
       74: 7400000
-    second: Take 001
+    second: Walk_Mec
   - first:
       95: 9500000
     second: //RootNode
@@ -290,7 +303,36 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: Walk_Mec
+      takeName: Take 001
+      internalID: 7400000
+      firstFrame: 1
+      lastFrame: 40
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 1
     isReadable: 1
   meshes:
     lODScreenPercentages: []
@@ -366,10 +408,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 89243
-  packageName: Character Monsters X
-  packageVersion: 3.0
-  assetPath: Assets/Creature_Monsters_X/Animation/Monster_X@Dead.FBX
-  uploadId: 196688
