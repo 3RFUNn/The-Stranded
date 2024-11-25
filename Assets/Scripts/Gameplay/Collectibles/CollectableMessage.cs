@@ -3,25 +3,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteInEditMode]
 public class CollectableMessage : Interactable
 {
-    public MessageSO message;
-    public PlayerTablet playerTablet;
-    // Start is called before the first frame update
-    void Start()
+    public MessageSO Message;
+    public PlayerTablet PlayerTablet;
+    void Awake()
     {
-        promptUIText = "collect";
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        promptUIText = "Collect";
+        //PlayerTablet = FindFirstObjectByType<PlayerTablet>();
     }
 
     public override void Interact() {
         base.Interact();
-        playerTablet.AddMessage(message);
+        PlayerTablet.AddMessage(Message);
         Destroy(this.gameObject);
     }
 }
