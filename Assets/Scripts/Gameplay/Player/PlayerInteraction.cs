@@ -38,7 +38,7 @@ public class PlayerInteraction : MonoBehaviour
             // Check if the object hit has an Interactable component
             Interactable hitInteractable = hit.collider.GetComponent<Interactable>();
 
-            if (hitInteractable != null)
+            if (hitInteractable != null && hitInteractable.ShouldShowPrompt)
             {
                 interactable = hitInteractable;
                 promptText.text = interactable.promptUIText;
@@ -71,11 +71,11 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     public void OnUIExit(InputAction.CallbackContext ctx){
-        if(ctx.started){
-            promptText.enabled = true;
-            PlayerInput.SwitchCurrentActionMap("Player");
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-        }
+        //if(ctx.started){
+        //    promptText.enabled = true;
+        //    PlayerInput.SwitchCurrentActionMap("Player");
+        //    Cursor.visible = false;
+        //    Cursor.lockState = CursorLockMode.Locked;
+        //}
     }
 }
