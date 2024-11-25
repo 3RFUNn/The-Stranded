@@ -39,6 +39,7 @@ public class WhacAnAlien : Interactable
                 foreach (var alien in Aliens){
                     alien.shouldMoveUp = true;
                 }
+                ShouldShowPrompt = true;
             }
             else {
                 //counting
@@ -55,6 +56,7 @@ public class WhacAnAlien : Interactable
         }
         CrosshairPromptText.enabled = false;
         PlayerInput.SwitchCurrentActionMap("UI");
+        ShouldShowPrompt = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

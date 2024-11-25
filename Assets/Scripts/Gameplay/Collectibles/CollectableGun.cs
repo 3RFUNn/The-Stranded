@@ -10,11 +10,11 @@ public class CollectableGun : ItemCollectible
     public GameObject gunInHandGO;
     public GameObject lightGO;
     public GameObject bulletCountUI;
-    public PlayerInput input;
+    public PlayerInput Input;
 
     private void Start() {
-        input.actions.FindAction("Fire").Disable();
-        input.actions.FindAction("Reload").Disable();
+        Input.actions.FindAction("Fire").Disable();
+        Input.actions.FindAction("Reload").Disable();
         gunInHandGO.SetActive(false);
         bulletCountUI.SetActive(false);
     }
@@ -23,8 +23,8 @@ public class CollectableGun : ItemCollectible
         base.Interact();
         Destroy(gunCollectableGO);
         Destroy(lightGO);
-        input.actions.FindAction("Fire").Enable();
-        input.actions.FindAction("Reload").Enable();
+        Input.actions.FindAction("Fire").Enable();
+        Input.actions.FindAction("Reload").Enable();
         gunInHandGO.SetActive(true);
         bulletCountUI.SetActive(true);
     }
