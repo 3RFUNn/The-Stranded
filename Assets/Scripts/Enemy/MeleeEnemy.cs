@@ -1,228 +1,140 @@
 using UnityEngine;
-using System.Collections;
+using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class MeleeEnemy : BaseEnemy
 {
-    #region Serialized Fields
-    [Header("Melee Combat Settings")]
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private float attackDamage = 10f;
-    [SerializeField] private float attackInterval = 2f;
-    [SerializeField] private float attackAnimationDuration = 1f;
-    [SerializeField] private float rushSpeed = 8f;
-    [SerializeField] private float rushThreshold = 5f;
+    [Header("Melee Specific Settings")]
+    [SerializeField] private float chargeSpeed = 8f;
+    [SerializeField] private float minAttackCooldown = 1.5f;
     
-    [Header("Combat Animations")]
-    [SerializeField] private string attackTriggerName = "Attack";
-    [SerializeField] private string attackBoolName = "IsAttacking";
-    #endregion
+    private bool isInAttackTrigger = false;
+    private PlayerHealth playerHealth;
 
-    #region Private Fields
-    private float lastAttackTime;
-    private bool isAttacking;
-    private bool isRushing;
-    #endregion
-
-    #region State Management
-    protected override void UpdateState()
+    protected override void Start()
     {
-        if (!IsPlayerValid()) return;
+        base.Start();
+        maxSpeed = chargeSpeed;
+        runSpeed = chargeSpeed;
+        attackInterval = minAttackCooldown;
+    }
 
-        float distanceToPlayer = Vector3.Distance(transform.position, Player.position);
-        bool canSeePlayer = IsPlayerInFieldOfView() && HasLineOfSightToPlayer();
+    protected override void HandlePursuing()
+    {
+        if (!agent.isOnNavMesh || player == null) return;
 
-        switch (CurrentState)
+        // If we're in attack trigger, transition to attack state
+        if (isInAttackTrigger)
         {
-            case EnemyState.Idle:
-            case EnemyState.Patrolling:
-                if (canSeePlayer && distanceToPlayer <= detectionRange)
-                {
-                    ChangeState(EnemyState.Pursuing);
-                }
-                break;
+            ChangeState(EnemyState.Attacking);
+            return;
+        }
 
-            case EnemyState.Pursuing:
-                if (distanceToPlayer <= attackRange && canSeePlayer)
-                {
-                    ChangeState(EnemyState.Attacking);
-                }
-                else if (!canSeePlayer && distanceToPlayer > detectionRange)
-                {
-                    ChangeState(EnemyState.Patrolling);
-                }
-                else
-                {
-                    // Update rushing state based on distance
-                    isRushing = distanceToPlayer <= rushThreshold;
-                }
-                break;
+        // Charge at the player
+        MoveToPoint(player.position, chargeSpeed);
+        FaceTarget(player.position);
+        UpdateAnimationState(false, false, true, false);
 
-            case EnemyState.Attacking:
-                if (distanceToPlayer > attackRange || !canSeePlayer)
-                {
-                    ChangeState(EnemyState.Pursuing);
-                }
-                break;
+        // Play movement sounds
+        if (movementSounds.Length > 0 && Time.time % 3 < 0.1f)
+        {
+            PlayRandomSound(movementSounds);
         }
     }
 
-    protected override void HandleCurrentState()
+    protected override void HandleAttacking()
     {
-        switch (CurrentState)
+        if (player == null || !isInAttackTrigger)
         {
-            case EnemyState.Idle:
-                HandleIdle();
-                break;
-            case EnemyState.Patrolling:
-                HandlePatrolling();
-                break;
-            case EnemyState.Pursuing:
-                HandlePursuing();
-                break;
-            case EnemyState.Attacking:
-                HandleAttacking();
-                break;
+            ChangeState(EnemyState.Pursuing);
+            return;
         }
-    }
 
-    protected override void HandleStateTransition(EnemyState oldState, EnemyState newState)
-    {
-        base.HandleStateTransition(oldState, newState);
+        // Stop all movement
+        StopMovement();
         
-        // Reset combat flags on state change
-        if (newState != EnemyState.Attacking)
-        {
-            isAttacking = false;
-            isRushing = false;
-        }
-    }
-    #endregion
+        // Face the player while attacking
+        FaceTarget(player.position);
 
-    #region State Handlers
-    private void HandleIdle()
-    {
-        StopAgent();
-        PlayAnimation("IsIdle");
-    }
+        // Update animation state
+        UpdateAnimationState(false, false, false, true);
 
-    private void HandlePatrolling()
-    {
-        // Simple patrol behavior - can be expanded
-        if (Agent.remainingDistance < 0.1f)
-        {
-            Vector3 randomPoint = transform.position + Random.insideUnitSphere * 10f;
-            MoveToPosition(randomPoint);
-        }
-        PlayAnimation("IsWalking");
-    }
-
-    private void HandlePursuing()
-    {
-        if (!IsPlayerValid()) return;
-
-        // Set appropriate speed based on distance
-        SetAgentSpeed(isRushing ? rushSpeed : runSpeed);
-        
-        // Move towards player
-        MoveToPosition(Player.position);
-        FaceTarget(Player.position);
-
-        // Play movement sound occasionally
-        if (Random.value < 0.01f)
-        {
-            PlaySound(movementSounds);
-        }
-
-        // Update animation
-        PlayAnimation(isRushing ? "IsRunning" : "IsWalking");
-    }
-
-    private void HandleAttacking()
-    {
-        if (!IsPlayerValid() || isAttacking) return;
-
-        StopAgent();
-        FaceTarget(Player.position);
-
+        // Perform attack if cooldown is over
         if (Time.time >= lastAttackTime + attackInterval)
         {
-            StartCoroutine(PerformAttackSequence());
+            PerformAttack();
+            lastAttackTime = Time.time;
         }
     }
-    #endregion
 
-    #region Combat
-    private IEnumerator PerformAttackSequence()
+    protected override void ChangeState(EnemyState newState)
     {
-        isAttacking = true;
-        lastAttackTime = Time.time;
-
-        // Start attack animation
-        if (Animator != null)
+        // If entering attack state
+        if (newState == EnemyState.Attacking)
         {
-            Animator.SetTrigger(attackTriggerName);
-            Animator.SetBool(attackBoolName, true);
+            StopMovement();
+            UpdateAnimationState(false, false, false, true);
+        }
+        // If leaving attack state
+        else if (currentState == EnemyState.Attacking)
+        {
+            UpdateAnimationState(true, false, false, false);
         }
 
+        base.ChangeState(newState);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            isInAttackTrigger = true;
+            if (playerHealth == null)
+            {
+                playerHealth = other.GetComponentInParent<PlayerHealth>();
+            }
+            
+            if (currentState == EnemyState.Pursuing)
+            {
+                ChangeState(EnemyState.Attacking);
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            isInAttackTrigger = false;
+            if (currentState == EnemyState.Attacking)
+            {
+                ChangeState(EnemyState.Pursuing);
+            }
+        }
+    }
+
+    private void PerformAttack()
+    {
         // Play attack sound
-        PlaySound(attackSounds);
-
-        // Wait for the "impact" moment in the animation
-        yield return new WaitForSeconds(attackAnimationDuration * 0.5f);
-
-        // Apply damage if still in range
-        if (IsPlayerValid() && IsInAttackRange())
+        if (attackSounds.Length > 0)
         {
-            ApplyDamage();
+            PlayRandomSound(attackSounds);
         }
 
-        // Wait for animation to finish
-        yield return new WaitForSeconds(attackAnimationDuration * 0.5f);
-
-        // Reset attack state
-        if (Animator != null)
+        // Apply damage if player health exists
+        if (playerHealth != null)
         {
-            Animator.SetBool(attackBoolName, false);
-        }
-        isAttacking = false;
-    }
-
-    private void ApplyDamage()
-    {
-        // Attempt to get and damage the player's health component
-        if (Player.TryGetComponent<IDamageable>(out var damageable))
-        {
-            damageable.TakeDamage(attackDamage);
+            playerHealth.TakeDamage(attackDamage);
+            Debug.Log($"Melee attack dealt {attackDamage} damage to player.");
         }
     }
 
-    private bool IsInAttackRange()
-    {
-        if (!IsPlayerValid()) return false;
-        
-        float distanceToPlayer = Vector3.Distance(transform.position, Player.position);
-        return distanceToPlayer <= attackRange;
-    }
-    #endregion
-
-    #region Debug
     protected override void OnDrawGizmosSelected()
     {
         base.OnDrawGizmosSelected();
-
-        // Draw attack range
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        // Draw rush threshold
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, rushThreshold);
+        
+        // Draw charge speed range
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, chargeSpeed);
     }
-    #endregion
-}
-
-// Interface for damageable entities
-public interface IDamageable
-{
-    void TakeDamage(float damage);
 }
