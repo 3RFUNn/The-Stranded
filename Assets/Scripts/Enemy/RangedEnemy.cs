@@ -1,28 +1,42 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class RangedEnemy : BaseEnemy
 {
-    [Header("Ranged Specific Settings")]
+    [Header("Ranged Combat Settings")]
     [SerializeField] private GameObject projectilePrefab;
+    [SerializeField] private Transform projectileSpawnPoint;
     [SerializeField] private float projectileSpeed = 15f;
     [SerializeField] private float preferredDistance = 8f;
-    [SerializeField] private float repositionThreshold = 2f;
-    [SerializeField] private Transform projectileSpawnPoint;
+    [SerializeField] private float distanceThreshold = 1.5f;  // How close to preferred distance is acceptable
+
+    [Header("Positioning Settings")]
     [SerializeField] private float strafeSpeed = 4f;
-    private Vector3 strafeTarget;
-    private bool isStrafeLeft = false;
-    private float nextStrafeChangeTime;
-    private float strafeChangeInterval = 2f;
+    [SerializeField] private float strafeInterval = 2f;
+    private float nextStrafeTime;
+    private bool isStrafeLeft;
 
     protected override void Start()
     {
         base.Start();
+        
         if (projectilePrefab == null)
         {
             Debug.LogError($"Projectile prefab missing on {gameObject.name}!");
             enabled = false;
+            return;
         }
+
+        if (projectileSpawnPoint == null)
+        {
+            projectileSpawnPoint = transform;
+            Debug.LogWarning($"No projectile spawn point set on {gameObject.name}, using transform as default.");
+        }
+
+        // Set appropriate speeds
+        walkSpeed = strafeSpeed;
+        runSpeed = maxSpeed;
     }
 
     protected override void HandlePursuing()
@@ -34,91 +48,91 @@ public class RangedEnemy : BaseEnemy
         // Always face the player
         FaceTarget(player.position);
 
-        if (Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
+        // Handle movement based on distance to player
+        if (Mathf.Abs(distanceToPlayer - preferredDistance) <= distanceThreshold)
         {
-            // At ideal range, strafe
-            HandleStrafing();
+            // At ideal range - strafe and potentially attack
+            HandleStrafe();
+            
+            if (CheckLineOfSight() && Time.time >= lastAttackTime + attackInterval)
+            {
+                ChangeState(EnemyState.Attacking);
+                return;
+            }
         }
-        else if (distanceToPlayer < preferredDistance - repositionThreshold)
+        else if (distanceToPlayer < preferredDistance - distanceThreshold)
         {
-            // Too close, back away
-            Vector3 backawayDirection = transform.position - player.position;
-            Vector3 targetPosition = player.position + backawayDirection.normalized * preferredDistance;
+            // Too close - back away
+            Vector3 retreatDirection = transform.position - player.position;
+            Vector3 targetPosition = player.position + retreatDirection.normalized * preferredDistance;
             
             if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, preferredDistance, NavMesh.AllAreas))
             {
-                agent.SetDestination(hit.position);
-                UpdateAnimation("IsRunning", true);
+                MoveToPoint(hit.position, runSpeed);
+                UpdateAnimationState(false, false, true, false);
             }
         }
         else
         {
-            // Too far, move closer
-            agent.SetDestination(player.position);
-            UpdateAnimation("IsRunning", true);
-        }
-
-        // Check if we can attack from current position
-        if (CheckLineOfSight() && distanceToPlayer <= detectionRange &&
-            Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
-        {
-            if (Time.time >= lastAttackTime + attackInterval)
-            {
-                StartCoroutine(SmoothStateTransition(EnemyState.Attacking));
-            }
+            // Too far - move closer
+            MoveToPoint(player.position, runSpeed);
+            UpdateAnimationState(false, false, true, false);
         }
     }
 
-    private void HandleStrafing()
+    private void HandleStrafe()
     {
-        if (Time.time >= nextStrafeChangeTime)
+        if (Time.time >= nextStrafeTime)
         {
             isStrafeLeft = !isStrafeLeft;
-            nextStrafeChangeTime = Time.time + strafeChangeInterval;
+            nextStrafeTime = Time.time + strafeInterval;
         }
 
         Vector3 strafeDirection = isStrafeLeft ? -transform.right : transform.right;
         Vector3 targetPosition = transform.position + strafeDirection * strafeSpeed;
 
-        // Ensure strafe position is valid
         if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, strafeSpeed, NavMesh.AllAreas))
         {
-            agent.SetDestination(hit.position);
-            UpdateAnimation("IsWalking", true);
+            MoveToPoint(hit.position, strafeSpeed);
+            UpdateAnimationState(false, true, false, false);
         }
     }
 
     protected override void HandleAttacking()
     {
-        // Stop moving when attacking
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-
-        // Keep facing the player
-        FaceTarget(player.position);
+        if (player == null) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         bool hasLineOfSight = CheckLineOfSight();
 
-        // Only attack if conditions are right
-        if (Time.time >= lastAttackTime + attackInterval && hasLineOfSight &&
-            Mathf.Abs(distanceToPlayer - preferredDistance) <= repositionThreshold)
+        // Check if we should keep attacking
+        if (!hasLineOfSight || Mathf.Abs(distanceToPlayer - preferredDistance) > distanceThreshold)
         {
-            UpdateAnimation("IsAttacking", true);
-            PerformAttack();
+            ChangeState(EnemyState.Pursuing);
+            return;
         }
-        else if (!hasLineOfSight || Mathf.Abs(distanceToPlayer - preferredDistance) > repositionThreshold)
+
+        // Stop movement during attack
+        StopMovement();
+        
+        // Keep facing the player
+        FaceTarget(player.position);
+
+        // Update animation
+        UpdateAnimationState(false, false, false, true);
+
+        // Perform attack if cooldown is over
+        if (Time.time >= lastAttackTime + attackInterval)
         {
-            StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
+            FireProjectile();
+            lastAttackTime = Time.time;
         }
     }
 
-    protected override void PerformAttack()
+    private void FireProjectile()
     {
         if (projectilePrefab == null || player == null) return;
 
-        lastAttackTime = Time.time;
-        
         // Play attack sound
         if (attackSounds.Length > 0)
         {
@@ -126,37 +140,45 @@ public class RangedEnemy : BaseEnemy
         }
 
         // Calculate spawn position
-        Vector3 spawnPosition = projectileSpawnPoint != null 
-            ? projectileSpawnPoint.position 
-            : transform.position + transform.forward + Vector3.up;
+        Vector3 spawnPosition = projectileSpawnPoint.position;
 
-        // Spawn projectile
-        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        // Calculate target position with basic prediction
+        Vector3 targetPosition = player.position;
+        Rigidbody playerRb = player.GetComponent<Rigidbody>();
+        if (playerRb != null)
+        {
+            float distanceToTarget = Vector3.Distance(spawnPosition, player.position);
+            float travelTime = distanceToTarget / projectileSpeed;
+            targetPosition += playerRb.velocity * travelTime;
+        }
+
+        // Calculate firing direction
+        Vector3 directionToTarget = (targetPosition - spawnPosition).normalized;
+        Quaternion projectileRotation = Quaternion.LookRotation(directionToTarget);
+
+        // Spawn and launch projectile
+        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, projectileRotation);
         Rigidbody projectileRb = projectile.GetComponent<Rigidbody>();
         
         if (projectileRb != null)
         {
-            // Calculate direction with prediction
-            Vector3 targetPosition = player.position + (player.GetComponent<Rigidbody>()?.velocity ?? Vector3.zero) * 
-                                   (Vector3.Distance(spawnPosition, player.position) / projectileSpeed);
-            
-            Vector3 directionToTarget = (targetPosition - spawnPosition).normalized;
-            Vector3 arcedDirection = (directionToTarget + Vector3.up * 0.1f).normalized;
-            
-            projectileRb.velocity = arcedDirection * projectileSpeed;
+            // Add slight upward arc to the projectile
+            Vector3 firingDirection = (directionToTarget + Vector3.up * 0.1f).normalized;
+            projectileRb.velocity = firingDirection * projectileSpeed;
         }
-
-        StartCoroutine(ResetAttackAnimation());
     }
 
-    protected override void UpdateState(float distanceToPlayer, bool canSeePlayer)
+    protected override void OnDrawGizmosSelected()
     {
-        base.UpdateState(distanceToPlayer, canSeePlayer);
+        base.OnDrawGizmosSelected();
 
-        // Additional check for losing line of sight
-        if (currentState == EnemyState.Attacking && !canSeePlayer)
-        {
-            StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
-        }
+        // Draw preferred range
+        Gizmos.color = new Color(0f, 1f, 1f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, preferredDistance);
+        
+        // Draw preferred range threshold
+        Gizmos.color = new Color(0f, 0.5f, 0.5f, 0.2f);
+        Gizmos.DrawWireSphere(transform.position, preferredDistance - distanceThreshold);
+        Gizmos.DrawWireSphere(transform.position, preferredDistance + distanceThreshold);
     }
 }

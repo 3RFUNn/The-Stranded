@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
-using System.Collections.Generic;
 
 public abstract class BaseEnemy : MonoBehaviour
 {
@@ -13,14 +12,13 @@ public abstract class BaseEnemy : MonoBehaviour
     [Header("Detection Settings")] 
     [SerializeField] protected float detectionRange = 15f;
     [SerializeField] protected float attackRange = 2f;
-    [SerializeField] protected float safeDistance = 15f;
     [SerializeField] protected float fieldOfViewAngle = 180f;
 
-    [Header("Speed Settings")]
+    [Header("Movement Settings")]
     [SerializeField] protected float walkSpeed = 2f;
     [SerializeField] protected float runSpeed = 5f;
     [SerializeField] protected float maxSpeed = 8f;
-    [SerializeField] protected float speedAcceleration = 2f;
+    [SerializeField] protected float rotationSpeed = 5f;
     protected float currentSpeed;
 
     [Header("Combat Settings")] 
@@ -31,17 +29,10 @@ public abstract class BaseEnemy : MonoBehaviour
     [Header("Patrol Settings")] 
     [SerializeField] protected float patrolRadius = 20f;
     [SerializeField] protected float waitTimeAtPatrolPoint = 3f;
-    [SerializeField] protected float minPatrolDistance = 5f; // Minimum distance for new patrol point
+    [SerializeField] protected float minPatrolDistance = 5f;
     protected Vector3 currentPatrolPoint;
     protected bool isWaitingAtPatrolPoint;
-    protected Vector3 lastKnownPlayerPosition;
-    protected Quaternion lastPatrolRotation;
     protected float patrolWaitEndTime;
-
-    [Header("Animation Settings")]
-    [SerializeField] protected float animationBlendSpeed = 8f;
-    [SerializeField] protected float rotationSpeed = 5f;
-    protected float currentAnimationBlend = 0f;
 
     [Header("Audio")] 
     [SerializeField] protected AudioClip[] attackSounds;
@@ -50,9 +41,10 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected Transform player;
     protected EnemyState currentState;
-    protected bool isTransitioningAnimation = false;
     protected bool hasSpottedPlayer = false;
     protected bool isMoving = false;
+
+    #region Initialization
 
     protected virtual void Start()
     {
@@ -61,7 +53,7 @@ public abstract class BaseEnemy : MonoBehaviour
         {
             currentSpeed = 0;
             ChangeState(EnemyState.Idle);
-            StartCoroutine(DelayedPatrolStart());
+            StartCoroutine(InitializePatrol());
         }
         else
         {
@@ -69,52 +61,143 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
-    protected bool CheckLineOfSight()
+    protected virtual void InitializeComponents()
     {
-        if (player == null) return false;
-
-        Vector3 directionToPlayer = (player.position - transform.position).normalized;
-        float angle = Vector3.Angle(transform.forward, directionToPlayer);
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-
-        if (angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange)
-        {
-            lastKnownPlayerPosition = player.position;
-            return true;
-        }
-        return false;
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+        FindPlayer();
     }
+
+    protected virtual bool VerifyComponents()
+    {
+        if (agent == null)
+        {
+            Debug.LogError($"NavMeshAgent missing on {gameObject.name}!");
+            return false;
+        }
+        
+        if (animator == null || audioSource == null)
+        {
+            Debug.LogWarning($"Animator or AudioSource missing on {gameObject.name}!");
+        }
+
+        return true;
+    }
+
+    #endregion
+
+    #region Core Update Logic
+
+    protected virtual void Update()
+    {
+        if (player == null)
+        {
+            FindPlayer();
+            return;
+        }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        bool canSeePlayer = CheckLineOfSight();
+        
+        UpdateState(distanceToPlayer, canSeePlayer);
+        HandleCurrentState();
+        UpdateAnimation();
+    }
+
+    protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
+    {
+        switch (currentState)
+        {
+            case EnemyState.Idle:
+            case EnemyState.Patrolling:
+                if (canSeePlayer && distanceToPlayer <= detectionRange)
+                {
+                    hasSpottedPlayer = true;
+                    ChangeState(EnemyState.Pursuing);
+                }
+                break;
+
+            case EnemyState.Pursuing:
+                if (distanceToPlayer <= attackRange && canSeePlayer)
+                {
+                    ChangeState(EnemyState.Attacking);
+                }
+                else if (!canSeePlayer && distanceToPlayer > detectionRange)
+                {
+                    hasSpottedPlayer = false;
+                    ChangeState(EnemyState.Patrolling);
+                }
+                break;
+
+            case EnemyState.Attacking:
+                if (distanceToPlayer > attackRange)
+                {
+                    ChangeState(EnemyState.Pursuing);
+                }
+                break;
+        }
+    }
+
+    protected virtual void HandleCurrentState()
+    {
+        switch (currentState)
+        {
+            case EnemyState.Idle:
+                HandleIdle();
+                break;
+            case EnemyState.Patrolling:
+                HandlePatrolling();
+                break;
+            case EnemyState.Pursuing:
+                HandlePursuing();
+                break;
+            case EnemyState.Attacking:
+                HandleAttacking();
+                break;
+            case EnemyState.Fleeing:
+                HandleFleeing();
+                break;
+        }
+    }
+
+    protected virtual void HandleFleeing()
+    {
+        // Base implementation - can be overridden by derived classes
+        if (!agent.isOnNavMesh || player == null) return;
+
+        Vector3 fleeDirection = transform.position - player.position;
+        Vector3 fleePosition = transform.position + fleeDirection.normalized * detectionRange;
+        
+        if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, detectionRange, NavMesh.AllAreas))
+        {
+            MoveToPoint(hit.position, maxSpeed);
+            FaceTarget(transform.position + fleeDirection);
+            UpdateAnimationState(false, false, true, false);
+        }
+    }
+
+    public virtual void OnDamageReceived()
+    {
+        if (player != null)
+        {
+            ChangeState(EnemyState.Pursuing);
+        }
+    }
+
+    #endregion
+
+    #region State Handlers
 
     protected virtual void HandleIdle()
     {
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-        isMoving = false;
-        UpdateAnimation("IsIdle", true);
+        StopMovement();
+        UpdateAnimationState(true, false, false, false);
 
         if (Time.time >= patrolWaitEndTime)
         {
-            Debug.Log($"Exiting Idle state at time: {Time.time}");
             SetNewPatrolPoint();
             ChangeState(EnemyState.Patrolling);
-        }
-    }
-
-    protected virtual void StartWaitAtPatrolPoint()
-    {
-        isWaitingAtPatrolPoint = true;
-        patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-        isMoving = false;
-        
-        // Changed to switch to Idle state after setting the wait time
-        ChangeState(EnemyState.Idle);
-        Debug.Log($"Started waiting at patrol point. Will resume at: {patrolWaitEndTime}");
-        
-        if (idleSounds.Length > 0)
-        {
-            PlayRandomSound(idleSounds);
         }
     }
 
@@ -124,7 +207,6 @@ public abstract class BaseEnemy : MonoBehaviour
         {
             if (Time.time >= patrolWaitEndTime)
             {
-                Debug.Log("Resuming patrol from wait point");
                 isWaitingAtPatrolPoint = false;
                 SetNewPatrolPoint();
             }
@@ -134,71 +216,65 @@ public abstract class BaseEnemy : MonoBehaviour
         if (!agent.isOnNavMesh) return;
 
         float distanceToPatrolPoint = Vector3.Distance(transform.position, currentPatrolPoint);
-        Debug.Log($"Distance to patrol point: {distanceToPatrolPoint}");
-        
         if (distanceToPatrolPoint < 0.5f)
         {
             StartWaitAtPatrolPoint();
         }
         else
         {
-            MoveToPatrolPoint();
+            MoveToPoint(currentPatrolPoint, walkSpeed);
+            UpdateAnimationState(false, true, false, false);
         }
     }
-    
-    protected IEnumerator DelayedPatrolStart()
+
+    protected virtual void HandlePursuing()
     {
-        // Wait for initial setup
-        yield return new WaitForSeconds(1f);
+        if (!agent.isOnNavMesh || player == null) return;
+        
+        MoveToPoint(player.position, runSpeed);
+        FaceTarget(player.position);
+        UpdateAnimationState(false, false, true, false);
 
-        // Make sure we're still in a valid state
-        if (enabled && gameObject.activeInHierarchy)
+        if (movementSounds.Length > 0 && Time.time % 3 < 0.1f)
         {
-            // Set initial patrol point
-            SetNewPatrolPoint();
-            
-            // Start in idle state first
-            ChangeState(EnemyState.Idle);
-            
-            // Set the initial patrol wait time
-            patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
-            
-            // Reset movement flags
-            isMoving = false;
-            isWaitingAtPatrolPoint = true;
-            
-            // Update animations
-            if (animator != null)
-            {
-                ResetAnimations();
-                animator.SetBool("IsIdle", true);
-            }
+            PlayRandomSound(movementSounds);
         }
     }
 
-    private void MoveToPatrolPoint()
+    protected abstract void HandleAttacking();
+
+    #endregion
+
+    #region Movement and Navigation
+
+    protected virtual void MoveToPoint(Vector3 point, float speed)
     {
         if (!agent.isOnNavMesh) return;
+        
+        agent.isStopped = false;
+        agent.speed = speed;
+        agent.SetDestination(point);
+        isMoving = true;
+    }
 
-        Vector3 directionToTarget = (currentPatrolPoint - transform.position).normalized;
-        float angle = Vector3.Angle(transform.forward, directionToTarget);
-        float distanceToPatrolPoint = Vector3.Distance(transform.position, currentPatrolPoint);
+    protected virtual void StopMovement()
+    {
+        if (!agent.isOnNavMesh) return;
+        
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
+        isMoving = false;
+    }
 
-        if (distanceToPatrolPoint < 1f)  // Changed from 0.5f to 1f
+    protected virtual void FaceTarget(Vector3 target)
+    {
+        Vector3 directionToTarget = (target - transform.position).normalized;
+        directionToTarget.y = 0;
+        
+        if (directionToTarget != Vector3.zero)
         {
-            StartWaitAtPatrolPoint();
-        }
-        else if (angle > 30f)
-        {
-            StopAndRotate(currentPatrolPoint);
-            isMoving = false;
-        }
-        else
-        {
-            agent.isStopped = false;
-            agent.SetDestination(currentPatrolPoint);
-            isMoving = true;
-            UpdateAnimation("IsWalking", true);
+            Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
         }
     }
 
@@ -224,347 +300,72 @@ public abstract class BaseEnemy : MonoBehaviour
 
         if (attempts >= maxAttempts)
         {
-            // If we couldn't find a good point, just use the current position
             currentPatrolPoint = transform.position;
             StartWaitAtPatrolPoint();
         }
     }
 
-   protected virtual void UpdateSpeedAndAnimation()
+    #endregion
+
+    #region Animation and State Management
+
+    protected virtual void UpdateAnimation()
     {
-        // Don't update animations if we're in attacking state
-        if (currentState == EnemyState.Attacking)
-        {
-            return;
-        }
+        if (animator == null) return;
 
-        float targetSpeed = currentState switch
-        {
-            EnemyState.Pursuing => hasSpottedPlayer ? maxSpeed : runSpeed,
-            EnemyState.Patrolling => walkSpeed,
-            EnemyState.Fleeing => maxSpeed,
-            _ => 0f
-        };
+        bool isIdle = !isMoving || agent.velocity.magnitude < 0.1f;
+        bool isWalking = isMoving && currentSpeed <= walkSpeed * 1.5f;
+        bool isRunning = isMoving && currentSpeed > walkSpeed * 1.5f;
+        bool isAttacking = currentState == EnemyState.Attacking;
 
-        currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * speedAcceleration);
+        UpdateAnimationState(isIdle, isWalking, isRunning, isAttacking);
+    }
+
+    protected virtual void UpdateAnimationState(bool idle, bool walking, bool running, bool attacking)
+    {
+        if (animator == null) return;
         
-        if (agent != null && agent.isOnNavMesh)
-        {
-            agent.speed = currentSpeed;
-            // Check if the agent is actually moving by checking its velocity magnitude
-            isMoving = agent.velocity.magnitude > 0.1f;
-        }
-
-        // Update animation states based on movement and actual velocity
-        if (animator != null)
-        {
-            bool shouldBeIdle = !isMoving || agent.velocity.magnitude < 0.1f;
-            bool shouldBeWalking = isMoving && currentSpeed <= walkSpeed * 1.5f && agent.velocity.magnitude > 0.1f;
-            bool shouldBeRunning = isMoving && currentSpeed > walkSpeed * 1.5f && agent.velocity.magnitude > 0.1f;
-
-            // Don't update animations if we're already in a special state
-            bool isInSpecialAnimation = animator.GetBool("IsAttacking");
-            if (!isInSpecialAnimation)
-            {
-                // Only update animations if there's an actual change to prevent animation flickering
-                if (animator.GetBool("IsIdle") != shouldBeIdle ||
-                    animator.GetBool("IsWalking") != shouldBeWalking ||
-                    animator.GetBool("IsRunning") != shouldBeRunning)
-                {
-                    ResetAnimations();
-                    animator.SetBool("IsIdle", shouldBeIdle);
-                    animator.SetBool("IsWalking", shouldBeWalking);
-                    animator.SetBool("IsRunning", shouldBeRunning);
-                }
-            }
-        }
-    }
-
-    protected virtual void UpdateAnimation(string parameterName, bool value)
-    {
-        if (animator != null && !isTransitioningAnimation)
-        {
-            ResetAnimations();
-            animator.SetBool(parameterName, value);
-
-            // Update isMoving flag based on animation state
-            isMoving = parameterName == "IsWalking" || parameterName == "IsRunning";
-        }
-    }
-
-    protected virtual void Update()
-    {
-        if (player == null)
-        {
-            FindPlayer();
-            if (player == null) return;
-        }
-
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-        bool canSeePlayer = CheckLineOfSight();
-        
-        UpdateState(distanceToPlayer, canSeePlayer);
-        HandleCurrentState();
-        UpdateSpeedAndAnimation();
-    }
-
-    protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
-    {
-        switch (currentState)
-        {
-            case EnemyState.Idle:
-                if (canSeePlayer && distanceToPlayer <= detectionRange)
-                {
-                    hasSpottedPlayer = true;
-                    StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
-                }
-                break;
-
-            case EnemyState.Patrolling:
-                if (canSeePlayer && distanceToPlayer <= detectionRange)
-                {
-                    hasSpottedPlayer = true;
-                    StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
-                }
-                break;
-
-            case EnemyState.Pursuing:
-                if (distanceToPlayer <= attackRange && canSeePlayer)
-                {
-                    StartCoroutine(SmoothStateTransition(EnemyState.Attacking));
-                }
-                else if (!canSeePlayer && distanceToPlayer > detectionRange)
-                {
-                    hasSpottedPlayer = false;
-                    lastPatrolRotation = transform.rotation;
-                    StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
-                }
-                break;
-
-            case EnemyState.Attacking:
-                if (distanceToPlayer > attackRange + 0.5f || !canSeePlayer)
-                {
-                    StartCoroutine(SmoothStateTransition(EnemyState.Pursuing));
-                }
-                break;
-
-            case EnemyState.Fleeing:
-                if (distanceToPlayer >= safeDistance && !canSeePlayer)
-                {
-                    StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
-                }
-                break;
-        }
-    }
-
-    protected virtual void HandleCurrentState()
-    {
-        switch (currentState)
-        {
-            case EnemyState.Idle:
-                HandleIdle();
-                break;
-
-            case EnemyState.Patrolling:
-                HandlePatrolling();
-                break;
-
-            case EnemyState.Pursuing:
-                HandlePursuing();
-                break;
-
-            case EnemyState.Attacking:
-                HandleAttacking();
-                break;
-
-            case EnemyState.Fleeing:
-                HandleFleeing();
-                break;
-        }
-    }
-
-    protected virtual void HandlePursuing()
-    {
-        if (!agent.isOnNavMesh || player == null) return;
-        
-        agent.isStopped = false;
-        agent.SetDestination(player.position);
-        FaceTarget(player.position);
-        isMoving = true;
-        UpdateAnimation("IsRunning", true);
-
-        if (Time.time % 3 < 0.1f && movementSounds.Length > 0)
-        {
-            PlayRandomSound(movementSounds);
-        }
-    }
-
-    protected abstract void HandleAttacking();
-
-    protected virtual void HandleFleeing()
-    {
-        if (!agent.isOnNavMesh) return;
-
-        Vector3 fleeDirection = transform.position - player.position;
-        Vector3 fleePosition = transform.position + fleeDirection.normalized * safeDistance;
-        
-        if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, safeDistance, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-            FaceTarget(transform.position + fleeDirection);
-            isMoving = true;
-            UpdateAnimation("IsRunning", true);
-        }
-    }
-
-    protected abstract void PerformAttack();
-
-    protected virtual IEnumerator ResetAttackAnimation()
-    {
-        yield return new WaitForSeconds(0.5f);
-        if (currentState == EnemyState.Attacking)
-        {
-            animator.SetBool("IsAttacking", false);
-        }
-    }
-
-    protected virtual void StopAndSnapToPosition(Vector3 position)
-    {
-        if (!agent.isOnNavMesh) return;
-        
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-        transform.position = new Vector3(position.x, transform.position.y, position.z);
-        isMoving = false;
-        UpdateAnimation("IsIdle", true);
-    }
-
-    protected virtual void StopAndRotate(Vector3 targetPosition)
-    {
-        if (!agent.isOnNavMesh) return;
-        
-        agent.isStopped = true;
-        agent.velocity = Vector3.zero;
-        FaceTarget(targetPosition);
-        isMoving = false;
-        UpdateAnimation("IsIdle", true);
-    }
-
-    protected virtual void FaceTarget(Vector3 target)
-    {
-        Vector3 directionToTarget = (target - transform.position).normalized;
-        directionToTarget.y = 0;
-        
-        if (directionToTarget != Vector3.zero)
-        {
-            Quaternion lookRotation = Quaternion.LookRotation(directionToTarget);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
-        }
+        animator.SetBool("IsIdle", idle);
+        animator.SetBool("IsWalking", walking);
+        animator.SetBool("IsRunning", running);
+        animator.SetBool("IsAttacking", attacking);
     }
 
     protected virtual void ChangeState(EnemyState newState)
     {
         if (currentState == newState) return;
 
-        // Store rotation if leaving patrol state
-        if (currentState == EnemyState.Patrolling)
-        {
-            lastPatrolRotation = transform.rotation;
-        }
-
         currentState = newState;
-        ResetAnimations();
-
-        // Reset agent properties on state change
+        
+        // Reset movement and update speed based on new state
         if (agent != null && agent.isOnNavMesh)
         {
             agent.isStopped = false;
             agent.velocity = Vector3.zero;
         }
-        
-        // Handle specific state change logic
+
         switch (newState)
         {
             case EnemyState.Idle:
                 currentSpeed = 0f;
                 isMoving = false;
                 break;
-
             case EnemyState.Patrolling:
                 currentSpeed = walkSpeed;
-                if (!isWaitingAtPatrolPoint)
-                {
-                    SetNewPatrolPoint();
-                }
                 break;
-
             case EnemyState.Pursuing:
                 currentSpeed = runSpeed;
                 isMoving = true;
                 break;
-
             case EnemyState.Attacking:
-                if (agent != null && agent.isOnNavMesh)
-                {
-                    agent.isStopped = true;
-                }
-                currentSpeed = 0f;
-                isMoving = false;
-                break;
-
-            case EnemyState.Fleeing:
-                currentSpeed = maxSpeed;
-                isMoving = true;
+                StopMovement();
                 break;
         }
     }
 
-    protected IEnumerator SmoothStateTransition(EnemyState newState)
-    {
-        if (isTransitioningAnimation) yield break;
+    #endregion
 
-        isTransitioningAnimation = true;
-
-        float currentBlend = 1f;
-        while (currentBlend > 0)
-        {
-            currentBlend -= Time.deltaTime * animationBlendSpeed;
-            UpdateAnimationBlend(currentBlend);
-            yield return null;
-        }
-
-        ChangeState(newState);
-
-        currentBlend = 0f;
-        while (currentBlend < 1)
-        {
-            currentBlend += Time.deltaTime * animationBlendSpeed;
-            UpdateAnimationBlend(currentBlend);
-            yield return null;
-        }
-
-        isTransitioningAnimation = false;
-    }
-
-    protected virtual void UpdateAnimationBlend(float blend)
-    {
-        if (animator != null)
-        {
-            animator.SetLayerWeight(0, blend);
-            currentAnimationBlend = blend;
-        }
-    }
-
-    protected virtual void ResetAnimations()
-    {
-        if (animator != null)
-        {
-            animator.SetBool("IsIdle", false);
-            animator.SetBool("IsWalking", false);
-            animator.SetBool("IsRunning", false);
-            animator.SetBool("IsAttacking", false);
-        }
-    }
+    #region Utility Functions
 
     protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f)
     {
@@ -576,45 +377,77 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
+    protected bool CheckLineOfSight()
+    {
+        if (player == null) return false;
+
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        float angle = Vector3.Angle(transform.forward, directionToPlayer);
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
+        return angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange;
+    }
+
     protected void FindPlayer()
     {
-        if (player == null)
+        if (player != null) return;
+        
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                player = playerObj.transform;
-            }
-            else
-            {
-                playerObj = GameObject.FindObjectOfType<PlayerHealth>()?.gameObject;
-                if (playerObj != null)
-                {
-                    player = playerObj.transform;
-                }
-                else
-                {
-                    Debug.LogWarning($"Player not found by {gameObject.name}!");
-                }
-            }
+            player = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning($"Player not found by {gameObject.name}!");
         }
     }
 
+    protected virtual void StartWaitAtPatrolPoint()
+    {
+        isWaitingAtPatrolPoint = true;
+        patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
+        StopMovement();
+        ChangeState(EnemyState.Idle);
+        
+        if (idleSounds.Length > 0)
+        {
+            PlayRandomSound(idleSounds);
+        }
+    }
+
+    protected IEnumerator InitializePatrol()
+    {
+        yield return new WaitForSeconds(1f);
+        if (enabled && gameObject.activeInHierarchy)
+        {
+            SetNewPatrolPoint();
+            ChangeState(EnemyState.Idle);
+            patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
+            isWaitingAtPatrolPoint = true;
+            UpdateAnimationState(true, false, false, false);
+        }
+    }
+
+    #endregion
+
+    #region Debug
+
     protected virtual void OnDrawGizmosSelected()
     {
-        // Draw detection range
+        // Detection range
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
-        // Draw attack range
+        // Attack range
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        // Draw patrol radius
+        // Patrol radius
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, patrolRadius);
 
-        // Draw field of view
+        // Field of view
         Gizmos.color = Color.green;
         float halfFOV = fieldOfViewAngle * 0.5f;
         Vector3 rightDir = Quaternion.Euler(0, halfFOV, 0) * transform.forward;
@@ -622,7 +455,7 @@ public abstract class BaseEnemy : MonoBehaviour
         Gizmos.DrawRay(transform.position, rightDir * detectionRange);
         Gizmos.DrawRay(transform.position, leftDir * detectionRange);
 
-        // Draw current patrol point
+        // Current patrol point
         if (currentPatrolPoint != Vector3.zero)
         {
             Gizmos.color = Color.cyan;
@@ -631,58 +464,5 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
-    protected virtual void OnDisable()
-    {
-        StopAllCoroutines();
-        if (agent != null && agent.isOnNavMesh)
-        {
-            agent.isStopped = true;
-            agent.velocity = Vector3.zero;
-        }
-        ResetAnimations();
-    }
-
-    public virtual void OnDamageReceived()
-    {
-        if (player != null)
-        {
-            lastKnownPlayerPosition = player.position;
-            hasSpottedPlayer = true;
-        }
-    }
-
-    protected virtual void InitializeComponents()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>();
-        audioSource = GetComponent<AudioSource>();
-        
-        if (player == null)
-        {
-            FindPlayer();
-        }
-    }
-
-    protected virtual bool VerifyComponents()
-    {
-        bool isValid = true;
-
-        if (agent == null)
-        {
-            Debug.LogError($"NavMeshAgent missing on {gameObject.name}!");
-            isValid = false;
-        }
-
-        if (animator == null)
-        {
-            Debug.LogWarning($"Animator missing on {gameObject.name}!");
-        }
-
-        if (audioSource == null)
-        {
-            Debug.LogWarning($"AudioSource missing on {gameObject.name}!");
-        }
-
-        return isValid;
-    }
+    #endregion
 }

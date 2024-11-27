@@ -1,51 +1,67 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class CowardlyEnemy : BaseEnemy
 {
     [Header("Cowardly Specific Settings")]
-    [SerializeField] private float panicThreshold = 8f;
-    [SerializeField] private float fleeSpeed = 10f;
-    [SerializeField] private float fleeRotationSpeed = 10f;
-    [SerializeField] private float calmDownTime = 5f;
-    private float timeStartedFleeing;
+    [SerializeField] private float panicDistance = 8f;      // Distance at which enemy starts panicking
+    [SerializeField] private float safeDistance = 15f;      // Distance at which enemy feels safe
+    [SerializeField] private float fleeSpeed = 10f;         // Speed when fleeing
+    [SerializeField] private float calmDownTime = 5f;       // Time needed to calm down when out of sight
+    
     private bool isPanicked = false;
+    private float timeStartedFleeing;
+    private Vector3 lastSafePosition;
+    private const float MIN_FLEE_DISTANCE = 5f;  // Minimum distance to move when fleeing
 
     protected override void Start()
     {
         base.Start();
         maxSpeed = fleeSpeed;
+        runSpeed = fleeSpeed;
+        lastSafePosition = transform.position;
     }
 
     protected override void UpdateState(float distanceToPlayer, bool canSeePlayer)
     {
-        // Handle panic state first
-        if (canSeePlayer && distanceToPlayer <= panicThreshold)
+        // Reset state if we were attacking or pursuing (cowardly enemies don't attack)
+        if (currentState == EnemyState.Attacking || currentState == EnemyState.Pursuing)
+        {
+            ChangeState(EnemyState.Patrolling);
+        }
+
+        // Check for panic conditions
+        if (canSeePlayer && distanceToPlayer <= panicDistance)
         {
             if (!isPanicked)
             {
                 timeStartedFleeing = Time.time;
                 isPanicked = true;
             }
-            StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
+            ChangeState(EnemyState.Fleeing);
             return;
         }
 
-        // If we're fleeing, check if we should calm down
+        // Handle fleeing state
         if (currentState == EnemyState.Fleeing)
         {
-            if (distanceToPlayer >= safeDistance || (!canSeePlayer && Time.time - timeStartedFleeing >= calmDownTime))
+            bool isSafe = distanceToPlayer >= safeDistance;
+            bool isCalmedDown = !canSeePlayer && Time.time - timeStartedFleeing >= calmDownTime;
+
+            if (isSafe || isCalmedDown)
             {
                 isPanicked = false;
-                StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
-                return;
+                lastSafePosition = transform.position;
+                ChangeState(EnemyState.Patrolling);
             }
+            return;
         }
 
-        // Only allow transitions to Patrolling or Fleeing
-        if (currentState != EnemyState.Fleeing && currentState != EnemyState.Patrolling)
+        // Default behavior when not panicked
+        if (currentState != EnemyState.Fleeing)
         {
-            StartCoroutine(SmoothStateTransition(EnemyState.Patrolling));
+            base.UpdateState(distanceToPlayer, canSeePlayer);
         }
     }
 
@@ -53,55 +69,113 @@ public class CowardlyEnemy : BaseEnemy
     {
         if (!agent.isOnNavMesh || player == null) return;
 
-        // Calculate flee direction (away from player)
-        Vector3 fleeDirection = transform.position - player.position;
-        fleeDirection.y = 0;
-        Vector3 targetPosition = transform.position + fleeDirection.normalized * safeDistance;
+        // Calculate optimal flee direction
+        Vector3 fleeDirection = GetOptimalFleeDirection();
+        Vector3 targetPosition = transform.position + fleeDirection * safeDistance;
 
         // Find valid position on NavMesh
         if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, safeDistance, NavMesh.AllAreas))
         {
-            agent.isStopped = false;
-            agent.SetDestination(hit.position);
-            
+            // Only update destination if it's significantly different from current path
+            if (Vector3.Distance(agent.destination, hit.position) > MIN_FLEE_DISTANCE)
+            {
+                MoveToPoint(hit.position, fleeSpeed);
+            }
+
             // Always face away from the player while fleeing
-            Vector3 lookDirection = transform.position + fleeDirection;
-            Quaternion targetRotation = Quaternion.LookRotation(fleeDirection.normalized);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * fleeRotationSpeed);
+            FaceTarget(transform.position + fleeDirection);
             
-            UpdateAnimation("IsRunning", true);
+            // Update animation state to running
+            UpdateAnimationState(false, false, true, false);
+
+            // Play panic sounds occasionally
+            if (movementSounds.Length > 0 && Time.time % 2 < 0.1f)
+            {
+                PlayRandomSound(movementSounds, 1.2f); // Slightly louder for panic effect
+            }
         }
+        else
+        {
+            // If we can't find a valid flee position, try to return to last safe position
+            MoveToPoint(lastSafePosition, fleeSpeed);
+        }
+    }
+
+    private Vector3 GetOptimalFleeDirection()
+    {
+        Vector3 awayFromPlayer = transform.position - player.position;
+        awayFromPlayer.y = 0;
+        
+        // Try multiple directions to find the best escape route
+        float[] angles = { 0, 45, -45, 90, -90 };
+        Vector3 bestDirection = awayFromPlayer.normalized;
+        float bestDistance = 0;
+
+        foreach (float angle in angles)
+        {
+            Vector3 testDirection = Quaternion.Euler(0, angle, 0) * awayFromPlayer.normalized;
+            Vector3 testPosition = transform.position + testDirection * safeDistance;
+
+            // Check if position is on NavMesh
+            if (NavMesh.SamplePosition(testPosition, out NavMeshHit hit, safeDistance, NavMesh.AllAreas))
+            {
+                float distanceFromPlayer = Vector3.Distance(hit.position, player.position);
+                if (distanceFromPlayer > bestDistance)
+                {
+                    bestDistance = distanceFromPlayer;
+                    bestDirection = testDirection;
+                }
+            }
+        }
+
+        return bestDirection;
     }
 
     protected override void HandlePursuing()
     {
-        // Override to prevent any pursuit behavior
-        StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
+        // Cowardly enemies don't pursue - change to fleeing instead
+        ChangeState(EnemyState.Fleeing);
     }
 
     protected override void HandleAttacking()
     {
-        // Override to prevent any attack behavior
-        StartCoroutine(SmoothStateTransition(EnemyState.Fleeing));
+        // Cowardly enemies don't attack - change to fleeing instead
+        ChangeState(EnemyState.Fleeing);
     }
 
-    protected override void PerformAttack()
+    protected override void OnDrawGizmosSelected()
     {
-        // No attack behavior for cowardly enemy
-    }
+        base.OnDrawGizmosSelected();
 
-    protected override void UpdateSpeedAndAnimation()
-    {
-        float targetSpeed = currentState == EnemyState.Fleeing ? fleeSpeed : walkSpeed;
-        currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * speedAcceleration);
-        agent.speed = currentSpeed;
+        // Draw panic distance
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, panicDistance);
 
-        // Update animations
-        if (animator != null)
+        // Draw safe distance
+        Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, safeDistance);
+
+        // Draw last safe position if set
+        if (lastSafePosition != Vector3.zero)
         {
-            animator.SetBool("IsIdle", currentSpeed < 0.1f);
-            animator.SetBool("IsWalking", currentSpeed >= 0.1f && currentSpeed <= walkSpeed * 1.5f);
-            animator.SetBool("IsRunning", currentSpeed > walkSpeed * 1.5f);
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(lastSafePosition, 0.5f);
+            Gizmos.DrawLine(transform.position, lastSafePosition);
+        }
+    }
+
+    public override void OnDamageReceived()
+    {
+        // Immediately panic when damaged
+        isPanicked = true;
+        timeStartedFleeing = Time.time;
+        ChangeState(EnemyState.Fleeing);
+        
+        // Store player position for fleeing direction
+        if (player != null)
+        {
+            Vector3 awayFromPlayer = transform.position - player.position;
+            lastSafePosition = transform.position + awayFromPlayer.normalized * safeDistance;
         }
     }
 }
