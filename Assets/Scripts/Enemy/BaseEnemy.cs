@@ -11,7 +11,7 @@ public abstract class BaseEnemy : MonoBehaviour
 
     [Header("Detection Settings")] 
     [SerializeField] protected float detectionRange = 15f;
-    [SerializeField] protected float attackRange = 2f;
+    [SerializeField] protected float attackRange = 4f;
     [SerializeField] protected float fieldOfViewAngle = 180f;
 
     [Header("Movement Settings")]
@@ -107,6 +107,10 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
     {
+        // Don't change state if we're currently attacking, let the specific enemy implementation handle attack exit conditions
+        if (currentState == EnemyState.Attacking)
+            return;
+
         switch (currentState)
         {
             case EnemyState.Idle:
@@ -127,13 +131,6 @@ public abstract class BaseEnemy : MonoBehaviour
                 {
                     hasSpottedPlayer = false;
                     ChangeState(EnemyState.Patrolling);
-                }
-                break;
-
-            case EnemyState.Attacking:
-                if (distanceToPlayer > attackRange)
-                {
-                    ChangeState(EnemyState.Pursuing);
                 }
                 break;
         }
@@ -324,6 +321,16 @@ public abstract class BaseEnemy : MonoBehaviour
     protected virtual void UpdateAnimationState(bool idle, bool walking, bool running, bool attacking)
     {
         if (animator == null) return;
+        
+        // If attacking, force all other states to false
+        if (attacking)
+        {
+            animator.SetBool("IsIdle", false);
+            animator.SetBool("IsWalking", false);
+            animator.SetBool("IsRunning", false);
+            animator.SetBool("IsAttacking", true);
+            return;
+        }
         
         animator.SetBool("IsIdle", idle);
         animator.SetBool("IsWalking", walking);

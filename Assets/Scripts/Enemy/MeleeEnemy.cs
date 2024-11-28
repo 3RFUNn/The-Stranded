@@ -8,7 +8,6 @@ public class MeleeEnemy : BaseEnemy
     [SerializeField] private float chargeSpeed = 8f;
     [SerializeField] private float minAttackCooldown = 1.5f;
     
-    private bool isInAttackTrigger = false;
     private PlayerHealth playerHealth;
 
     protected override void Start()
@@ -17,22 +16,27 @@ public class MeleeEnemy : BaseEnemy
         maxSpeed = chargeSpeed;
         runSpeed = chargeSpeed;
         attackInterval = minAttackCooldown;
+        attackRange = 3f;
     }
 
     protected override void HandlePursuing()
     {
         if (!agent.isOnNavMesh || player == null) return;
 
-        // If we're in attack trigger, transition to attack state
-        if (isInAttackTrigger)
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        
+        // Always face the player while pursuing
+        FaceTarget(player.position);
+
+        // Check if we're in attack range
+        if (distanceToPlayer <= attackRange)
         {
             ChangeState(EnemyState.Attacking);
             return;
         }
 
-        // Charge at the player
+        // Continue pursuing
         MoveToPoint(player.position, chargeSpeed);
-        FaceTarget(player.position);
         UpdateAnimationState(false, false, true, false);
 
         // Play movement sounds
@@ -44,7 +48,16 @@ public class MeleeEnemy : BaseEnemy
 
     protected override void HandleAttacking()
     {
-        if (player == null || !isInAttackTrigger)
+        if (player == null)
+        {
+            ChangeState(EnemyState.Pursuing);
+            return;
+        }
+
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        
+        // Exit attack state if we're too far from the player
+        if (distanceToPlayer > attackRange)
         {
             ChangeState(EnemyState.Pursuing);
             return;
@@ -55,9 +68,6 @@ public class MeleeEnemy : BaseEnemy
         
         // Face the player while attacking
         FaceTarget(player.position);
-
-        // Update animation state
-        UpdateAnimationState(false, false, false, true);
 
         // Perform attack if cooldown is over
         if (Time.time >= lastAttackTime + attackInterval)
@@ -84,41 +94,18 @@ public class MeleeEnemy : BaseEnemy
         base.ChangeState(newState);
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            isInAttackTrigger = true;
-            if (playerHealth == null)
-            {
-                playerHealth = other.GetComponentInParent<PlayerHealth>();
-            }
-            
-            if (currentState == EnemyState.Pursuing)
-            {
-                ChangeState(EnemyState.Attacking);
-            }
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            isInAttackTrigger = false;
-            if (currentState == EnemyState.Attacking)
-            {
-                ChangeState(EnemyState.Pursuing);
-            }
-        }
-    }
-
     private void PerformAttack()
     {
         // Play attack sound
         if (attackSounds.Length > 0)
         {
             PlayRandomSound(attackSounds);
+        }
+
+        // Get reference to player health if we don't have it
+        if (playerHealth == null && player != null)
+        {
+            playerHealth = player.GetComponent<PlayerHealth>();
         }
 
         // Apply damage if player health exists
@@ -136,5 +123,9 @@ public class MeleeEnemy : BaseEnemy
         // Draw charge speed range
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f);
         Gizmos.DrawWireSphere(transform.position, chargeSpeed);
+        
+        // Draw attack range
+        Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }
