@@ -38,10 +38,20 @@ public abstract class BaseEnemy : MonoBehaviour
     [SerializeField] protected float stuckCheckInterval = 0.5f;
     [SerializeField] protected float minMovementThreshold = 0.1f;
     [SerializeField] protected int stuckThreshold = 3;
+    [SerializeField] protected float avoidancePriority = 50;
+    [SerializeField] protected float avoidanceRadius = 1f;
+    [SerializeField] protected float separationDistance = 2f;
     protected Vector3 lastPosition;
     protected int stuckCounter;
     protected float lastStuckCheck;
     protected bool isStuck;
+
+    [Header("Animation Settings")]
+    [SerializeField] protected float movementThreshold = 0.15f;
+    [SerializeField] protected float animationSmoothTime = 0.2f;
+    protected bool wasMovingLastFrame = false;
+    protected float lastStateChangeTime;
+    protected const float MIN_STATE_DURATION = 0.5f;
 
     [Header("Audio")] 
     [SerializeField] protected AudioClip[] attackSounds;
@@ -78,6 +88,22 @@ public abstract class BaseEnemy : MonoBehaviour
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         FindPlayer();
+
+        if (agent != null)
+        {
+            // Initialize NavMeshAgent parameters
+            agent.acceleration = walkSpeed * 2;
+            agent.angularSpeed = rotationSpeed * 100;
+            agent.autoBraking = true;
+            agent.autoRepath = true;
+            agent.radius = avoidanceRadius;
+            
+            // Enhanced avoidance settings
+            agent.avoidancePriority = Random.Range((int)avoidancePriority - 10, (int)avoidancePriority + 10);
+            agent.stoppingDistance = 0.5f;
+            agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+            agent.baseOffset = 0.5f;
+        }
     }
 
     protected virtual bool VerifyComponents()
@@ -109,6 +135,7 @@ public abstract class BaseEnemy : MonoBehaviour
         }
 
         CheckIfStuck();
+        EnforceEnemySeparation();
         
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         bool canSeePlayer = CheckLineOfSight();
@@ -132,12 +159,19 @@ public abstract class BaseEnemy : MonoBehaviour
         }
 
         float movement = Vector3.Distance(transform.position, lastPosition);
-        if (movement < minMovementThreshold && agent.velocity.magnitude > 0.1f)
+        Vector3 desiredVelocity = agent.desiredVelocity;
+        
+        // Check if we're actually trying to move but can't
+        if (movement < minMovementThreshold && desiredVelocity.magnitude > 0.1f)
         {
-            stuckCounter++;
-            if (stuckCounter >= stuckThreshold)
+            // Check if there are obstacles in the way
+            if (Physics.Raycast(transform.position, desiredVelocity.normalized, out RaycastHit hit, agent.radius * 2))
             {
-                HandleStuckState();
+                stuckCounter++;
+                if (stuckCounter >= stuckThreshold)
+                {
+                    HandleStuckState();
+                }
             }
         }
         else
@@ -155,6 +189,12 @@ public abstract class BaseEnemy : MonoBehaviour
         
         isStuck = true;
         StartCoroutine(UnstuckRoutine());
+        
+        // Force update patrol point when stuck during patrol
+        if (currentState == EnemyState.Patrolling)
+        {
+            SetNewPatrolPoint();
+        }
     }
 
     protected virtual IEnumerator UnstuckRoutine()
@@ -205,7 +245,7 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
     {
-        // Don't change state if we're currently attacking, let the specific enemy implementation handle attack exit conditions
+        // Don't change state if we're currently attacking
         if (currentState == EnemyState.Attacking)
             return;
 
@@ -310,21 +350,29 @@ public abstract class BaseEnemy : MonoBehaviour
         if (!agent.isOnNavMesh) return;
 
         float distanceToPatrolPoint = Vector3.Distance(transform.position, currentPatrolPoint);
+        
         if (distanceToPatrolPoint < 0.5f)
         {
             StartWaitAtPatrolPoint();
         }
         else
         {
+            // Set the speed directly without lerping for more discrete movement
+            currentSpeed = walkSpeed;
             MoveToPoint(currentPatrolPoint, walkSpeed);
-            UpdateAnimationState(false, true, false, false);
+            
+            // Force walking animation during patrol
+            if (agent.velocity.magnitude > movementThreshold)
+            {
+                UpdateAnimationState(false, true, false, false);
+            }
         }
     }
 
     protected virtual void HandlePursuing()
     {
         if (!agent.isOnNavMesh || player == null) return;
-        
+
         MoveToPoint(player.position, runSpeed);
         FaceTarget(player.position);
         UpdateAnimationState(false, false, true, false);
@@ -348,6 +396,10 @@ public abstract class BaseEnemy : MonoBehaviour
         // Reset stuck detection when starting new movement
         stuckCounter = 0;
         isStuck = false;
+        
+        // Smooth acceleration/deceleration
+        agent.acceleration = speed * 2;
+        agent.angularSpeed = rotationSpeed * 100;
         
         agent.isStopped = false;
         agent.speed = speed;
@@ -373,6 +425,12 @@ public abstract class BaseEnemy : MonoBehaviour
         agent.velocity = Vector3.zero;
         agent.ResetPath();
         isMoving = false;
+        
+        // Update patrol point whenever we stop
+        if (currentState == EnemyState.Patrolling || currentState == EnemyState.Idle)
+        {
+            SetNewPatrolPoint();
+        }
     }
 
     protected virtual void FaceTarget(Vector3 target)
@@ -392,6 +450,7 @@ public abstract class BaseEnemy : MonoBehaviour
         int maxAttempts = 30;
         int attempts = 0;
         Vector3 newPoint;
+        bool validPointFound = false;
 
         do
         {
@@ -400,18 +459,93 @@ public abstract class BaseEnemy : MonoBehaviour
             attempts++;
 
             float distanceToNew = Vector3.Distance(transform.position, newPoint);
-            if (distanceToNew >= minPatrolDistance && NavMesh.SamplePosition(newPoint, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
+            
+            // Check if point is on NavMesh and path is valid
+            if (distanceToNew >= minPatrolDistance && 
+                NavMesh.SamplePosition(newPoint, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
             {
-                currentPatrolPoint = hit.position;
-                break;
+                NavMeshPath path = new NavMeshPath();
+                if (agent.CalculatePath(hit.position, path) && path.status == NavMeshPathStatus.PathComplete)
+                {
+                    currentPatrolPoint = hit.position;
+                    validPointFound = true;
+                    break;
+                }
             }
         } while (attempts < maxAttempts);
 
-        if (attempts >= maxAttempts)
+        if (!validPointFound)
         {
             currentPatrolPoint = transform.position;
             StartWaitAtPatrolPoint();
         }
+    }
+
+   protected virtual void EnforceEnemySeparation()
+    {
+        if (!agent.isOnNavMesh || !isMoving) return;
+
+        Vector3 separationVector = GetSeparationVector();
+        
+        if (separationVector.magnitude > 0.1f)
+        {
+            // Calculate a new target position that includes separation
+            Vector3 desiredDirection = (agent.desiredVelocity.normalized + separationVector.normalized).normalized;
+            Vector3 targetPosition = transform.position + desiredDirection * 2f;
+            
+            // Sample the NavMesh to ensure we're moving to a valid position
+            if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+            {
+                if (currentState != EnemyState.Attacking)  // Don't modify attack positioning
+                {
+                    Vector3 currentDestination = agent.destination;
+                    Vector3 adjustedDestination = Vector3.Lerp(currentDestination, hit.position, 0.5f);
+                    
+                    // Only update if it's significantly different to avoid jittering
+                    if (Vector3.Distance(currentDestination, adjustedDestination) > 0.5f)
+                    {
+                        agent.SetDestination(adjustedDestination);
+                        
+                        // Temporarily increase speed to help with separation
+                        float separationSpeedBoost = Mathf.Lerp(1f, 1.5f, separationVector.magnitude);
+                        currentSpeed = Mathf.Max(currentSpeed, walkSpeed * separationSpeedBoost);
+                    }
+                }
+            }
+        }
+    }
+
+    private Vector3 GetSeparationVector()
+    {
+        Vector3 separationVector = Vector3.zero;
+        int neighborCount = 0;
+        
+        // Find all nearby enemies
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, separationDistance);
+        foreach (var hitCollider in hitColliders)
+        {
+            BaseEnemy otherEnemy = hitCollider.GetComponent<BaseEnemy>();
+            if (otherEnemy != null && otherEnemy != this)
+            {
+                Vector3 awayFromOther = transform.position - hitCollider.transform.position;
+                float distance = awayFromOther.magnitude;
+                
+                if (distance < separationDistance)
+                {
+                    // The closer they are, the stronger the separation
+                    float separationStrength = 1.0f - (distance / separationDistance);
+                    separationVector += awayFromOther.normalized * separationStrength;
+                    neighborCount++;
+                }
+            }
+        }
+        
+        if (neighborCount > 0)
+        {
+            separationVector /= neighborCount;
+        }
+        
+        return separationVector;
     }
 
     #endregion
@@ -422,38 +556,69 @@ public abstract class BaseEnemy : MonoBehaviour
     {
         if (animator == null) return;
 
-        // More accurate movement detection
-        bool isActuallyMoving = agent.isOnNavMesh && 
-                               agent.velocity.magnitude > 0.1f && 
-                               !agent.isStopped &&
-                               Vector3.Distance(transform.position, lastPosition) > minMovementThreshold;
+        // Get the actual velocity magnitude
+        float currentVelocityMagnitude = agent.isOnNavMesh ? agent.velocity.magnitude : 0f;
+        bool isActuallyMoving = false;
 
+        // Check if we're actually moving with hysteresis
+        if (wasMovingLastFrame)
+        {
+            isActuallyMoving = currentVelocityMagnitude > movementThreshold * 0.5f; // Lower threshold to stay in moving state
+        }
+        else
+        {
+            isActuallyMoving = currentVelocityMagnitude > movementThreshold; // Higher threshold to enter moving state
+        }
+
+        // Only allow state changes after minimum duration
+        if (Time.time - lastStateChangeTime < MIN_STATE_DURATION)
+        {
+            return;
+        }
+
+        // Determine the movement state
         bool isIdle = !isActuallyMoving;
         bool isWalking = isActuallyMoving && currentSpeed <= walkSpeed * 1.5f;
         bool isRunning = isActuallyMoving && currentSpeed > walkSpeed * 1.5f;
         bool isAttacking = currentState == EnemyState.Attacking;
 
-        UpdateAnimationState(isIdle, isWalking, isRunning, isAttacking);
-    }
+        // Only update animation if there's a significant change
+        if (isActuallyMoving != wasMovingLastFrame || isAttacking)
+        {
+            UpdateAnimationState(isIdle, isWalking, isRunning, isAttacking);
+            lastStateChangeTime = Time.time;
+        }
 
+        wasMovingLastFrame = isActuallyMoving;
+    }
+    
     protected virtual void UpdateAnimationState(bool idle, bool walking, bool running, bool attacking)
     {
         if (animator == null) return;
-        
-        // If attacking, force all other states to false
+
+        // Set all states to false first
+        animator.SetBool("IsIdle", false);
+        animator.SetBool("IsWalking", false);
+        animator.SetBool("IsRunning", false);
+        animator.SetBool("IsAttacking", false);
+
+        // Then set only the active state
         if (attacking)
         {
-            animator.SetBool("IsIdle", false);
-            animator.SetBool("IsWalking", false);
-            animator.SetBool("IsRunning", false);
             animator.SetBool("IsAttacking", true);
-            return;
         }
-        
-        animator.SetBool("IsIdle", idle);
-        animator.SetBool("IsWalking", walking);
-        animator.SetBool("IsRunning", running);
-        animator.SetBool("IsAttacking", attacking);
+        else if (running)
+        {
+            animator.SetBool("IsRunning", true);
+        }
+        else if (walking)
+        {
+            animator.SetBool("IsWalking", true);
+        }
+        else if (idle)
+        {
+            animator.SetBool("IsIdle", true);
+        }
     }
 
     protected virtual void ChangeState(EnemyState newState)
@@ -477,6 +642,7 @@ public abstract class BaseEnemy : MonoBehaviour
                 break;
             case EnemyState.Patrolling:
                 currentSpeed = walkSpeed;
+                SetNewPatrolPoint();
                 break;
             case EnemyState.Pursuing:
                 currentSpeed = runSpeed;
@@ -485,12 +651,16 @@ public abstract class BaseEnemy : MonoBehaviour
             case EnemyState.Attacking:
                 StopMovement();
                 break;
+            case EnemyState.Fleeing:
+                currentSpeed = maxSpeed;
+                isMoving = true;
+                break;
         }
     }
 
     #endregion
 
-   #region Utility Functions
+    #region Utility Functions
 
     protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f)
     {
@@ -512,8 +682,11 @@ public abstract class BaseEnemy : MonoBehaviour
 
         if (angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange)
         {
+            // Layer mask for obstacle detection
+            int layerMask = ~(LayerMask.GetMask("Enemy")); // Ignore other enemies
+            
             // Add raycast check for obstacles
-            if (Physics.Raycast(transform.position, directionToPlayer, out RaycastHit hit, detectionRange))
+            if (Physics.Raycast(transform.position, directionToPlayer, out RaycastHit hit, detectionRange, layerMask))
             {
                 return hit.transform == player;
             }
@@ -541,7 +714,10 @@ public abstract class BaseEnemy : MonoBehaviour
         isWaitingAtPatrolPoint = true;
         patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
         StopMovement();
-        ChangeState(EnemyState.Idle);
+        
+        // Force idle animation
+        UpdateAnimationState(true, false, false, false);
+        lastStateChangeTime = Time.time;
         
         if (idleSounds.Length > 0)
         {
@@ -594,6 +770,17 @@ public abstract class BaseEnemy : MonoBehaviour
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(currentPatrolPoint, 0.5f);
             Gizmos.DrawLine(transform.position, currentPatrolPoint);
+        }
+
+        // Draw path if available
+        if (agent != null && agent.hasPath)
+        {
+            Gizmos.color = Color.white;
+            Vector3[] corners = agent.path.corners;
+            for (int i = 0; i < corners.Length - 1; i++)
+            {
+                Gizmos.DrawLine(corners[i], corners[i + 1]);
+            }
         }
     }
 
