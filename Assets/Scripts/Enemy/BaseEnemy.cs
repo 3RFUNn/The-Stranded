@@ -34,6 +34,15 @@ public abstract class BaseEnemy : MonoBehaviour
     protected bool isWaitingAtPatrolPoint;
     protected float patrolWaitEndTime;
 
+    [Header("Navigation Settings")]
+    [SerializeField] protected float stuckCheckInterval = 0.5f;
+    [SerializeField] protected float minMovementThreshold = 0.1f;
+    [SerializeField] protected int stuckThreshold = 3;
+    protected Vector3 lastPosition;
+    protected int stuckCounter;
+    protected float lastStuckCheck;
+    protected bool isStuck;
+
     [Header("Audio")] 
     [SerializeField] protected AudioClip[] attackSounds;
     [SerializeField] protected AudioClip[] movementSounds;
@@ -52,6 +61,8 @@ public abstract class BaseEnemy : MonoBehaviour
         if (VerifyComponents())
         {
             currentSpeed = 0;
+            lastPosition = transform.position;
+            lastStuckCheck = Time.time;
             ChangeState(EnemyState.Idle);
             StartCoroutine(InitializePatrol());
         }
@@ -97,12 +108,99 @@ public abstract class BaseEnemy : MonoBehaviour
             return;
         }
 
+        CheckIfStuck();
+        
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         bool canSeePlayer = CheckLineOfSight();
         
         UpdateState(distanceToPlayer, canSeePlayer);
         HandleCurrentState();
         UpdateAnimation();
+    }
+
+    protected virtual void CheckIfStuck()
+    {
+        if (Time.time - lastStuckCheck < stuckCheckInterval) return;
+
+        lastStuckCheck = Time.time;
+
+        if (!isMoving || !agent.isOnNavMesh)
+        {
+            stuckCounter = 0;
+            isStuck = false;
+            return;
+        }
+
+        float movement = Vector3.Distance(transform.position, lastPosition);
+        if (movement < minMovementThreshold && agent.velocity.magnitude > 0.1f)
+        {
+            stuckCounter++;
+            if (stuckCounter >= stuckThreshold)
+            {
+                HandleStuckState();
+            }
+        }
+        else
+        {
+            stuckCounter = 0;
+            isStuck = false;
+        }
+
+        lastPosition = transform.position;
+    }
+
+    protected virtual void HandleStuckState()
+    {
+        if (isStuck) return;
+        
+        isStuck = true;
+        StartCoroutine(UnstuckRoutine());
+    }
+
+    protected virtual IEnumerator UnstuckRoutine()
+    {
+        // Store original state and destination
+        EnemyState previousState = currentState;
+        Vector3 originalDestination = agent.destination;
+
+        // Stop current movement
+        StopMovement();
+        
+        // Small wait to let physics settle
+        yield return new WaitForSeconds(0.2f);
+
+        // Try to find a valid position nearby
+        for (int i = 0; i < 8; i++) // Try 8 different directions
+        {
+            float angle = i * 45f;
+            Vector3 direction = Quaternion.Euler(0, angle, 0) * transform.forward;
+            Vector3 targetPos = transform.position + direction * 2f;
+
+            if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+            {
+                // Move to the valid position
+                agent.Warp(hit.position);
+                break;
+            }
+        }
+
+        // Reset stuck status
+        stuckCounter = 0;
+        isStuck = false;
+
+        // Resume previous behavior
+        yield return new WaitForSeconds(0.2f);
+        
+        if (previousState == EnemyState.Patrolling)
+        {
+            SetNewPatrolPoint();
+        }
+        else if (agent.isOnNavMesh)
+        {
+            MoveToPoint(originalDestination, currentSpeed);
+        }
+
+        ChangeState(previousState);
     }
 
     protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
@@ -160,7 +258,6 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected virtual void HandleFleeing()
     {
-        // Base implementation - can be overridden by derived classes
         if (!agent.isOnNavMesh || player == null) return;
 
         Vector3 fleeDirection = transform.position - player.position;
@@ -248,10 +345,24 @@ public abstract class BaseEnemy : MonoBehaviour
     {
         if (!agent.isOnNavMesh) return;
         
+        // Reset stuck detection when starting new movement
+        stuckCounter = 0;
+        isStuck = false;
+        
         agent.isStopped = false;
         agent.speed = speed;
-        agent.SetDestination(point);
-        isMoving = true;
+        
+        // Validate destination before setting
+        if (NavMesh.SamplePosition(point, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
+        {
+            agent.SetDestination(hit.position);
+            isMoving = true;
+        }
+        else
+        {
+            Debug.LogWarning($"Invalid navigation point for {gameObject.name}");
+            StopMovement();
+        }
     }
 
     protected virtual void StopMovement()
@@ -260,6 +371,7 @@ public abstract class BaseEnemy : MonoBehaviour
         
         agent.isStopped = true;
         agent.velocity = Vector3.zero;
+        agent.ResetPath();
         isMoving = false;
     }
 
@@ -310,9 +422,15 @@ public abstract class BaseEnemy : MonoBehaviour
     {
         if (animator == null) return;
 
-        bool isIdle = !isMoving || agent.velocity.magnitude < 0.1f;
-        bool isWalking = isMoving && currentSpeed <= walkSpeed * 1.5f;
-        bool isRunning = isMoving && currentSpeed > walkSpeed * 1.5f;
+        // More accurate movement detection
+        bool isActuallyMoving = agent.isOnNavMesh && 
+                               agent.velocity.magnitude > 0.1f && 
+                               !agent.isStopped &&
+                               Vector3.Distance(transform.position, lastPosition) > minMovementThreshold;
+
+        bool isIdle = !isActuallyMoving;
+        bool isWalking = isActuallyMoving && currentSpeed <= walkSpeed * 1.5f;
+        bool isRunning = isActuallyMoving && currentSpeed > walkSpeed * 1.5f;
         bool isAttacking = currentState == EnemyState.Attacking;
 
         UpdateAnimationState(isIdle, isWalking, isRunning, isAttacking);
@@ -372,7 +490,7 @@ public abstract class BaseEnemy : MonoBehaviour
 
     #endregion
 
-    #region Utility Functions
+   #region Utility Functions
 
     protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f)
     {
@@ -392,7 +510,15 @@ public abstract class BaseEnemy : MonoBehaviour
         float angle = Vector3.Angle(transform.forward, directionToPlayer);
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        return angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange;
+        if (angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange)
+        {
+            // Add raycast check for obstacles
+            if (Physics.Raycast(transform.position, directionToPlayer, out RaycastHit hit, detectionRange))
+            {
+                return hit.transform == player;
+            }
+        }
+        return false;
     }
 
     protected void FindPlayer()
