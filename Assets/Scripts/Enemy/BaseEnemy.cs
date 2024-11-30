@@ -49,9 +49,10 @@ public abstract class BaseEnemy : MonoBehaviour
     [Header("Animation Settings")]
     [SerializeField] protected float movementThreshold = 0.15f;
     [SerializeField] protected float animationSmoothTime = 0.2f;
-    protected bool wasMovingLastFrame = false;
-    protected float lastStateChangeTime;
-    protected const float MIN_STATE_DURATION = 0.5f;
+    protected float attackAnimationDuration = 1.6f; // New field for attack animation
+    protected bool isPerformingAttack = false; // New field to track attack state
+    protected float currentAttackTime = 0f; // New field to track attack duration
+    
 
     [Header("Audio")] 
     [SerializeField] protected AudioClip[] attackSounds;
@@ -161,10 +162,8 @@ public abstract class BaseEnemy : MonoBehaviour
         float movement = Vector3.Distance(transform.position, lastPosition);
         Vector3 desiredVelocity = agent.desiredVelocity;
         
-        // Check if we're actually trying to move but can't
         if (movement < minMovementThreshold && desiredVelocity.magnitude > 0.1f)
         {
-            // Check if there are obstacles in the way
             if (Physics.Raycast(transform.position, desiredVelocity.normalized, out RaycastHit hit, agent.radius * 2))
             {
                 stuckCounter++;
@@ -190,7 +189,6 @@ public abstract class BaseEnemy : MonoBehaviour
         isStuck = true;
         StartCoroutine(UnstuckRoutine());
         
-        // Force update patrol point when stuck during patrol
         if (currentState == EnemyState.Patrolling)
         {
             SetNewPatrolPoint();
@@ -199,18 +197,14 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected virtual IEnumerator UnstuckRoutine()
     {
-        // Store original state and destination
         EnemyState previousState = currentState;
         Vector3 originalDestination = agent.destination;
 
-        // Stop current movement
         StopMovement();
         
-        // Small wait to let physics settle
         yield return new WaitForSeconds(0.2f);
 
-        // Try to find a valid position nearby
-        for (int i = 0; i < 8; i++) // Try 8 different directions
+        for (int i = 0; i < 8; i++)
         {
             float angle = i * 45f;
             Vector3 direction = Quaternion.Euler(0, angle, 0) * transform.forward;
@@ -218,17 +212,14 @@ public abstract class BaseEnemy : MonoBehaviour
 
             if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
             {
-                // Move to the valid position
                 agent.Warp(hit.position);
                 break;
             }
         }
 
-        // Reset stuck status
         stuckCounter = 0;
         isStuck = false;
 
-        // Resume previous behavior
         yield return new WaitForSeconds(0.2f);
         
         if (previousState == EnemyState.Patrolling)
@@ -245,7 +236,6 @@ public abstract class BaseEnemy : MonoBehaviour
 
     protected virtual void UpdateState(float distanceToPlayer, bool canSeePlayer)
     {
-        // Don't change state if we're currently attacking
         if (currentState == EnemyState.Attacking)
             return;
 
@@ -296,26 +286,142 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
-    protected virtual void HandleFleeing()
-    {
-        if (!agent.isOnNavMesh || player == null) return;
+    #endregion
 
-        Vector3 fleeDirection = transform.position - player.position;
-        Vector3 fleePosition = transform.position + fleeDirection.normalized * detectionRange;
-        
-        if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, detectionRange, NavMesh.AllAreas))
+    #region Animation System
+
+    protected virtual void UpdateAnimation()
+    {
+        if (animator == null) return;
+
+        // Handle attack animation separately
+        if (currentState == EnemyState.Attacking)
         {
-            MoveToPoint(hit.position, maxSpeed);
-            FaceTarget(transform.position + fleeDirection);
-            UpdateAnimationState(false, false, true, false);
+            if (!isPerformingAttack)
+            {
+                StartAttackAnimation();
+            }
+            else
+            {
+                UpdateAttackAnimation();
+            }
+            return;
+        }
+
+        // Reset attack state if we're not attacking
+        isPerformingAttack = false;
+        
+        // Get the actual velocity magnitude
+        float currentVelocityMagnitude = agent.isOnNavMesh ? agent.velocity.magnitude : 0f;
+        bool isActuallyMoving = currentVelocityMagnitude > movementThreshold;
+
+        // Determine the movement state
+        bool isIdle = !isActuallyMoving;
+        bool isWalking = isActuallyMoving && currentSpeed <= walkSpeed * 1.5f;
+        bool isRunning = isActuallyMoving && currentSpeed > walkSpeed * 1.5f;
+
+        // Update animation state with attack explicitly set to false
+        UpdateAnimationState(isIdle, isWalking, isRunning, false);
+    }
+
+    protected virtual void StartAttackAnimation()
+    {
+        isPerformingAttack = true;
+        currentAttackTime = 0f;
+        UpdateAnimationState(false, false, false, true);
+    }
+
+    protected virtual void UpdateAttackAnimation()
+    {
+        currentAttackTime += Time.deltaTime;
+        
+        // Keep the attack animation playing for its full duration
+        if (currentAttackTime >= attackAnimationDuration)
+        {
+            isPerformingAttack = false;
+            // Only reset to idle if we're still in attack state
+            if (currentState == EnemyState.Attacking)
+            {
+                UpdateAnimationState(true, false, false, false);
+            }
+        }
+    }
+    
+    protected virtual void UpdateAnimationState(bool idle, bool walking, bool running, bool attacking)
+    {
+        if (animator == null) return;
+
+        // Set all states to false first
+        animator.SetBool("IsIdle", false);
+        animator.SetBool("IsWalking", false);
+        animator.SetBool("IsRunning", false);
+        animator.SetBool("IsAttacking", false);
+
+        // Then set only the active state
+        if (attacking)
+        {
+            animator.SetBool("IsAttacking", true);
+        }
+        else if (running)
+        {
+            animator.SetBool("IsRunning", true);
+        }
+        else if (walking)
+        {
+            animator.SetBool("IsWalking", true);
+        }
+        else if (idle)
+        {
+            animator.SetBool("IsIdle", true);
         }
     }
 
-    public virtual void OnDamageReceived()
+    #endregion
+
+    #region State Management
+
+    protected virtual void ChangeState(EnemyState newState)
     {
-        if (player != null)
+        if (currentState == newState) return;
+        
+        // If we're leaving attack state, ensure we complete the current attack animation
+        if (currentState == EnemyState.Attacking && isPerformingAttack)
         {
-            ChangeState(EnemyState.Pursuing);
+            if (currentAttackTime < attackAnimationDuration)
+            {
+                return;
+            }
+        }
+
+        currentState = newState;
+        
+        // Reset movement and update speed based on new state
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+            agent.velocity = Vector3.zero;
+        }
+
+        switch (newState)
+        {
+            case EnemyState.Idle:
+                currentSpeed = 0f;
+                isMoving = false;
+                break;
+            case EnemyState.Patrolling:
+                currentSpeed = walkSpeed;
+                break;
+            case EnemyState.Pursuing:
+                currentSpeed = runSpeed;
+                isMoving = true;
+                break;
+            case EnemyState.Attacking:
+                StopMovement();
+                break;
+            case EnemyState.Fleeing:
+                currentSpeed = maxSpeed;
+                isMoving = true;
+                break;
         }
     }
 
@@ -357,11 +463,9 @@ public abstract class BaseEnemy : MonoBehaviour
         }
         else
         {
-            // Set the speed directly without lerping for more discrete movement
             currentSpeed = walkSpeed;
             MoveToPoint(currentPatrolPoint, walkSpeed);
             
-            // Force walking animation during patrol
             if (agent.velocity.magnitude > movementThreshold)
             {
                 UpdateAnimationState(false, true, false, false);
@@ -383,7 +487,30 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
+    protected virtual void HandleFleeing()
+    {
+        if (!agent.isOnNavMesh || player == null) return;
+
+        Vector3 fleeDirection = (transform.position - player.position).normalized;
+        Vector3 fleePosition = transform.position + fleeDirection * detectionRange;
+        
+        if (NavMesh.SamplePosition(fleePosition, out NavMeshHit hit, detectionRange, NavMesh.AllAreas))
+        {
+            MoveToPoint(hit.position, maxSpeed);
+            FaceTarget(transform.position + fleeDirection);
+            UpdateAnimationState(false, false, true, false);
+        }
+    }
+
     protected abstract void HandleAttacking();
+
+    public virtual void OnDamageReceived()
+    {
+        if (player != null)
+        {
+            ChangeState(EnemyState.Pursuing);
+        }
+    }
 
     #endregion
 
@@ -481,7 +608,7 @@ public abstract class BaseEnemy : MonoBehaviour
         }
     }
 
-   protected virtual void EnforceEnemySeparation()
+    protected virtual void EnforceEnemySeparation()
     {
         if (!agent.isOnNavMesh || !isMoving) return;
 
@@ -489,24 +616,19 @@ public abstract class BaseEnemy : MonoBehaviour
         
         if (separationVector.magnitude > 0.1f)
         {
-            // Calculate a new target position that includes separation
             Vector3 desiredDirection = (agent.desiredVelocity.normalized + separationVector.normalized).normalized;
             Vector3 targetPosition = transform.position + desiredDirection * 2f;
             
-            // Sample the NavMesh to ensure we're moving to a valid position
             if (NavMesh.SamplePosition(targetPosition, out NavMeshHit hit, 2f, NavMesh.AllAreas))
             {
-                if (currentState != EnemyState.Attacking)  // Don't modify attack positioning
+                if (currentState != EnemyState.Attacking)
                 {
                     Vector3 currentDestination = agent.destination;
                     Vector3 adjustedDestination = Vector3.Lerp(currentDestination, hit.position, 0.5f);
                     
-                    // Only update if it's significantly different to avoid jittering
                     if (Vector3.Distance(currentDestination, adjustedDestination) > 0.5f)
                     {
                         agent.SetDestination(adjustedDestination);
-                        
-                        // Temporarily increase speed to help with separation
                         float separationSpeedBoost = Mathf.Lerp(1f, 1.5f, separationVector.magnitude);
                         currentSpeed = Mathf.Max(currentSpeed, walkSpeed * separationSpeedBoost);
                     }
@@ -520,7 +642,6 @@ public abstract class BaseEnemy : MonoBehaviour
         Vector3 separationVector = Vector3.zero;
         int neighborCount = 0;
         
-        // Find all nearby enemies
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, separationDistance);
         foreach (var hitCollider in hitColliders)
         {
@@ -532,7 +653,6 @@ public abstract class BaseEnemy : MonoBehaviour
                 
                 if (distance < separationDistance)
                 {
-                    // The closer they are, the stronger the separation
                     float separationStrength = 1.0f - (distance / separationDistance);
                     separationVector += awayFromOther.normalized * separationStrength;
                     neighborCount++;
@@ -546,116 +666,6 @@ public abstract class BaseEnemy : MonoBehaviour
         }
         
         return separationVector;
-    }
-
-    #endregion
-
-    #region Animation and State Management
-
-    protected virtual void UpdateAnimation()
-    {
-        if (animator == null) return;
-
-        // Get the actual velocity magnitude
-        float currentVelocityMagnitude = agent.isOnNavMesh ? agent.velocity.magnitude : 0f;
-        bool isActuallyMoving = false;
-
-        // Check if we're actually moving with hysteresis
-        if (wasMovingLastFrame)
-        {
-            isActuallyMoving = currentVelocityMagnitude > movementThreshold * 0.5f; // Lower threshold to stay in moving state
-        }
-        else
-        {
-            isActuallyMoving = currentVelocityMagnitude > movementThreshold; // Higher threshold to enter moving state
-        }
-
-        // Only allow state changes after minimum duration
-        if (Time.time - lastStateChangeTime < MIN_STATE_DURATION)
-        {
-            return;
-        }
-
-        // Determine the movement state
-        bool isIdle = !isActuallyMoving;
-        bool isWalking = isActuallyMoving && currentSpeed <= walkSpeed * 1.5f;
-        bool isRunning = isActuallyMoving && currentSpeed > walkSpeed * 1.5f;
-        bool isAttacking = currentState == EnemyState.Attacking;
-
-        // Only update animation if there's a significant change
-        if (isActuallyMoving != wasMovingLastFrame || isAttacking)
-        {
-            UpdateAnimationState(isIdle, isWalking, isRunning, isAttacking);
-            lastStateChangeTime = Time.time;
-        }
-
-        wasMovingLastFrame = isActuallyMoving;
-    }
-    
-    protected virtual void UpdateAnimationState(bool idle, bool walking, bool running, bool attacking)
-    {
-        if (animator == null) return;
-
-        // Set all states to false first
-        animator.SetBool("IsIdle", false);
-        animator.SetBool("IsWalking", false);
-        animator.SetBool("IsRunning", false);
-        animator.SetBool("IsAttacking", false);
-
-        // Then set only the active state
-        if (attacking)
-        {
-            animator.SetBool("IsAttacking", true);
-        }
-        else if (running)
-        {
-            animator.SetBool("IsRunning", true);
-        }
-        else if (walking)
-        {
-            animator.SetBool("IsWalking", true);
-        }
-        else if (idle)
-        {
-            animator.SetBool("IsIdle", true);
-        }
-    }
-
-    protected virtual void ChangeState(EnemyState newState)
-    {
-        if (currentState == newState) return;
-
-        currentState = newState;
-        
-        // Reset movement and update speed based on new state
-        if (agent != null && agent.isOnNavMesh)
-        {
-            agent.isStopped = false;
-            agent.velocity = Vector3.zero;
-        }
-
-        switch (newState)
-        {
-            case EnemyState.Idle:
-                currentSpeed = 0f;
-                isMoving = false;
-                break;
-            case EnemyState.Patrolling:
-                currentSpeed = walkSpeed;
-                SetNewPatrolPoint();
-                break;
-            case EnemyState.Pursuing:
-                currentSpeed = runSpeed;
-                isMoving = true;
-                break;
-            case EnemyState.Attacking:
-                StopMovement();
-                break;
-            case EnemyState.Fleeing:
-                currentSpeed = maxSpeed;
-                isMoving = true;
-                break;
-        }
     }
 
     #endregion
@@ -682,10 +692,8 @@ public abstract class BaseEnemy : MonoBehaviour
 
         if (angle <= fieldOfViewAngle * 0.5f && distanceToPlayer <= detectionRange)
         {
-            // Layer mask for obstacle detection
-            int layerMask = ~(LayerMask.GetMask("Enemy")); // Ignore other enemies
+            int layerMask = ~(LayerMask.GetMask("Enemy"));
             
-            // Add raycast check for obstacles
             if (Physics.Raycast(transform.position, directionToPlayer, out RaycastHit hit, detectionRange, layerMask))
             {
                 return hit.transform == player;
@@ -715,9 +723,7 @@ public abstract class BaseEnemy : MonoBehaviour
         patrolWaitEndTime = Time.time + waitTimeAtPatrolPoint;
         StopMovement();
         
-        // Force idle animation
         UpdateAnimationState(true, false, false, false);
-        lastStateChangeTime = Time.time;
         
         if (idleSounds.Length > 0)
         {
