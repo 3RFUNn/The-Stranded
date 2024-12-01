@@ -551,18 +551,27 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Exit",
+                    "name": "Next",
                     "type": "Button",
                     "id": "e45b91a2-c1fc-401d-8362-9f780ba22d29",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": false
                 },
                 {
                     "name": "Resume",
                     "type": "Button",
                     "id": "c62a01a0-3337-45ba-ae13-36e669515328",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "DialogueNext",
+                    "type": "Button",
+                    "id": "4a5b4406-7aa1-4fb9-9774-7e564a3dd922",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -995,7 +1004,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Exit",
+                    "action": "Next",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -1007,6 +1016,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Resume",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2a44ba20-d58e-48bf-bd02-c7c013158ace",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DialogueNext",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
