@@ -15,10 +15,12 @@ public class GamePhaseManager : MonoBehaviour
     public PlayerInput Input;
     public EnemySpawner EnemySpawner;
     public GameObject playerCamera;
+    public PlayerTablet PlayerTablet = null;
 
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;
     public bool EnableEnemy;
+    public bool StartWithTablet = false;
 
     private GameObject _currentUI;
 
@@ -37,6 +39,11 @@ public class GamePhaseManager : MonoBehaviour
             MainMenu.SetActive(false);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        if (StartWithTablet){
+            PlayerTablet.gameObject.SetActive(true);
+            PlayerTablet.SetMessage(0);
         }
 
         EnemySpawner.enabled = EnableEnemy ? true : false;
