@@ -15,7 +15,7 @@ public class LookAtPlayer : MonoBehaviour
         {
             if (GamePhaseManager.instance != null)
             {
-                player = GamePhaseManager.instance.playerCamera;
+                player = GamePhaseManager.instance.FpsVCam.gameObject;
             }
             else
             {

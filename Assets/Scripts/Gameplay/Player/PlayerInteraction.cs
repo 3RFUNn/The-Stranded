@@ -14,23 +14,19 @@ public class PlayerInteraction : MonoBehaviour
     public PlayerInput PlayerInput;
     public TextMeshProUGUI promptText;
     public RectTransform promptUI;
+    public Transform CameraTransform;
 
     
     void Update()
     {
         CheckForInteractable();
-
-        // Check if the F key is pressed
-        //if (Input.GetKeyDown(KeyCode.F) && interactable != null)
-        //{
-        //    interactable.Interact();
-        //}
     }
 
     void CheckForInteractable()
     {
+        //print(Camera.main.transform.position);
         // Cast a ray from the player's position forward
-        Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
+        Ray ray = new Ray(CameraTransform.position, CameraTransform.forward);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit, interactDistance))

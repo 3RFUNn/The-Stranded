@@ -28,7 +28,7 @@ public class Movement : MonoBehaviour
     public float lookSensX;
     public float lookSensY;
 
-    public Camera childCamera;
+    public Transform CameraTransform;
     public CharacterController characterController;
     public MeshRenderer crouchMesh;
     public MeshRenderer standMesh;
@@ -84,7 +84,7 @@ public class Movement : MonoBehaviour
 
         // Camera pitch & restrict the max degree
         float rotateDelta = lookDir.y * lookSensY * Time.deltaTime;
-        float plannedRotate = childCamera.transform.localEulerAngles.x - rotateDelta;
+        float plannedRotate = CameraTransform.localEulerAngles.x - rotateDelta;
         int range = (int)(plannedRotate / 90);
 
         if (range == 1)
@@ -95,7 +95,7 @@ public class Movement : MonoBehaviour
         {
             plannedRotate = -90f;
         }
-        childCamera.transform.localEulerAngles = new Vector3(plannedRotate, 0, 0);
+        CameraTransform.localEulerAngles = new Vector3(plannedRotate, 0, 0);
     }
 
     public void OnMove(InputAction.CallbackContext callbackContext)
@@ -125,7 +125,7 @@ public class Movement : MonoBehaviour
             characterController.center -= new Vector3(0, 0.5f, 0);
             standMesh.enabled = false;
             crouchMesh.enabled = true;
-            childCamera.transform.position -= new Vector3(0, 0.75f, 0);
+            CameraTransform.position -= new Vector3(0, 0.75f, 0);
         }
         else if (callbackContext.canceled)
         {
@@ -134,7 +134,7 @@ public class Movement : MonoBehaviour
             characterController.center = Vector3.zero;
             crouchMesh.enabled = false;
             standMesh.enabled = true;
-            childCamera.transform.position += new Vector3(0, 0.75f, 0);
+            CameraTransform.position += new Vector3(0, 0.75f, 0);
         }
     }
 
@@ -160,5 +160,10 @@ public class Movement : MonoBehaviour
     {
         float scaledTopOffset = topOffset * transform.localScale.y;
         return Physics.Raycast(transform.position, Vector3.up, scaledTopOffset + (characterController.height / 2) * transform.localScale.y);
+    }
+
+    public void OnSliderValueChanged(float value){
+        lookSensX = value;
+        lookSensY = value * 10 / 7;
     }
 }
