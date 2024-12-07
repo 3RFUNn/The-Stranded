@@ -13,17 +13,22 @@ public class EnergyCharger : Interactable
             return _energyInventory;
         }
         set {
-            if (value == 0) {
-                promptUIText = "No fuel for recharge";
-            }
-            else {
-                promptUIText = "Recharge (you have " + value + "% fuel)";
+            if (EnergySlider.value <= 100) {
+                if (value == 0) {
+                    promptUIText = "No fuel for recharge";
+                }
+                else {
+                    promptUIText = "Recharge (you have " + value + "% fuel)";
+                }
+            } else{
+                ShouldShowPrompt = false;
             }
             _energyInventory = value;
         } 
     }
     public Slider EnergySlider;
 
+    [SerializeField]
     private int _energyInventory;
 
     private void Awake() {
@@ -33,9 +38,13 @@ public class EnergyCharger : Interactable
     public override void Interact() {
         base.Interact();
         if(EnergyInventory != 0){
+            int remain = (EnergyInventory + (int)EnergySlider.value) % 100;
             DOTween.To(() => EnergySlider.value, x => EnergySlider.value = x, Mathf.Min(EnergySlider.value + EnergyInventory, 100), 1.5f)
-                .SetEase(Ease.OutQuint);
-            EnergyInventory = 0;
+                .SetEase(Ease.OutQuint)
+                .OnComplete(()=>{
+                    GamePhaseManager.instance.ToEnding();
+                });
+            EnergyInventory = remain;
         }
     }
 }

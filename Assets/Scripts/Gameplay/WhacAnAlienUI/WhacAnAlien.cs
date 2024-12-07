@@ -1,4 +1,5 @@
 
+using Cinemachine;
 using Gameplay.Interactions;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ public class WhacAnAlien : Interactable
     public float CountDown;
     public float timer;
     public bool Started,isCountingDown;
+    public CinemachineVirtualCamera VCam;
     //public WhacAnAlienPuzzleState state;
 
     void Start()
@@ -54,6 +56,8 @@ public class WhacAnAlien : Interactable
                 i.shouldMoveUp = true;
             }
         }
+        VCam.Priority = 20;
+        GamePhaseManager.instance.FPSHandCam.SetActive(false);
         CrosshairPromptText.enabled = false;
         PlayerInput.SwitchCurrentActionMap("UI");
         ShouldShowPrompt = false;
@@ -62,6 +66,8 @@ public class WhacAnAlien : Interactable
     }
 
     public void StartCountingDown(){
+        GamePhaseManager.instance.FPSHandCam.SetActive(true);
+        VCam.Priority = 10;
         PlayerInput.SwitchCurrentActionMap("Player");
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;

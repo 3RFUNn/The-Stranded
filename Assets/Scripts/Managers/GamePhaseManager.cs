@@ -1,8 +1,11 @@
+using Cinemachine;
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Playables;
 
 public class GamePhaseManager : MonoBehaviour
 {
@@ -10,17 +13,23 @@ public class GamePhaseManager : MonoBehaviour
 
     public Animator IntroCameraAnimator;
     public GameObject Player;
-    public Camera MainCamera, CutSceneCamera;
     public GameObject HUD, MainMenu, PauseMenu;
     public PlayerInput Input;
     public EnemySpawner EnemySpawner;
-    public GameObject playerCamera;
     public PlayerTablet PlayerTablet = null;
+    public PlayableDirector Director;
+    public CinemachineBrain CineBrain;
+    public CinemachineVirtualCamera FpsVCam;
+    public GameObject CutSceneGO;
+    public AudioSource BGM;
+    public Transform EndingPos;
+    public GameObject FPSHandCam;
 
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;
     public bool EnableEnemy;
     public bool StartWithTablet = false;
+    public bool StartWithFullFuel = false;
 
     private GameObject _currentUI;
 
@@ -32,13 +41,22 @@ public class GamePhaseManager : MonoBehaviour
     void Start()
     {
         if (EnableIntro) {
-            Player.SetActive(false);
+            //switch to mainmenu VCam
+            FpsVCam.Priority = -1;
+            //switch input action map to UI
+            Input.SwitchCurrentActionMap("UI");
+            //hide HUD
+            HUD.SetActive(false);
+            //show main menu and cutscene GOs
             MainMenu.SetActive(true);
+            CutSceneGO.SetActive(true);
+            //play audiosource on main camera
+            BGM.Play();
         } else{
             //hide main menu and directly start game
             MainMenu.SetActive(false);
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            HideAndLockCursor();
+            HUD.SetActive(true);
         }
 
         if (StartWithTablet){
@@ -46,51 +64,43 @@ public class GamePhaseManager : MonoBehaviour
             PlayerTablet.SetMessage(0);
         }
 
-        EnemySpawner.enabled = EnableEnemy ? true : false;
-    }
+        if (StartWithFullFuel){
+            GameObject.Find("EnergyCharger").GetComponent<EnergyCharger>().EnergyInventory = 100;
+        }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        EnemySpawner.enabled = EnableEnemy ? true : false;
     }
 
     //this is called when start button in main menu is clicked
     public void StartGame(){
-        //switch to intro cutscene camera
-        MainCamera.enabled = false;
-        CutSceneCamera.enabled = true;
+        HideAndLockCursor();    
 
-        //hide UI
-        HUD.SetActive(false);
-        MainMenu.SetActive(false);
-
-        //hide cursor
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        //disable all input
-        Input.enabled = false;
+        //hide HUD and disable input
+        Cutscene(true);
 
         //play intro cutscene
-        IntroCameraAnimator.Play("IntroCamera");
+        Director.Play();
+
+        //fade out music
+        BGM.DOFade(0f, 6f).OnComplete(() =>
+        {
+            BGM.Stop();
+            BGM.volume = 1f;
+        });
     }
 
-    public void afterIntro(){
-        //align player's camera position with intro cutscene camera 
-        Player.transform.position = CutSceneCamera.transform.position;
-        MainCamera.transform.rotation = CutSceneCamera.transform.rotation;
+    public void AfterIntro(){
+        //show fps camera  
+        FpsVCam.Priority = 13;
 
-        //switch to player's camera
-        CutSceneCamera.transform.parent.gameObject.SetActive(false);
-        MainCamera.enabled = true;
-        
-        //show player and UI
-        HUD.SetActive(true);
-        Player.SetActive(true);
+        //show HUD and enable input
+        Cutscene(false);
 
-        //enable input
-        Input.enabled = true;
+        //hide cutscene objects
+        CutSceneGO.SetActive(false);
+
+        //switch input action map
+        Input.SwitchCurrentActionMap("Player");
     }
 
     //freeze time, display cursor, disable in-game inputs
@@ -133,5 +143,33 @@ public class GamePhaseManager : MonoBehaviour
         if (_currentUI != null && ctx.performed) {
             Resume(_currentUI);
         }
+    }
+
+    public void HideAndLockCursor(){
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void ShowAndUnLockCursor() {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    //handle HUD and input availability when enter/exit a cutscene
+    public void Cutscene(bool isInCutscene){
+        if (isInCutscene) {
+            HUD.SetActive(false);
+            Input.enabled = false;
+        }
+        else { 
+            HUD.SetActive(true);
+            Input.enabled = true;
+        }
+    }
+
+    //Go to the ending of the game based on ending conditions 
+    public void ToEnding(){
+        Player.transform.position = EndingPos.position;
+        Player.transform.LookAt(EndingPos.position + EndingPos.right);
     }
 }

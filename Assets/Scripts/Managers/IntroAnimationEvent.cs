@@ -6,6 +6,5 @@ public class IntroAnimationEvent : MonoBehaviour
 {
 
     public void OnEnd(){
-        GamePhaseManager.instance.afterIntro();
     }
 }
