@@ -16,10 +16,7 @@ public class VaraiablesInfoUI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        textUI.text = alienMove.t.ToString() + "\n";
-        PrintInfo(alienMove.Pillar.transform.position, "pillar");
-        PrintInfo(pillar.Top.position, "top");
-        PrintInfo(pillar.Bottom.position, "bottom");
+
     }
 
     void PrintInfo(object obj, string name){

@@ -10,7 +10,7 @@ public class CollectableMessage : Interactable
     public PlayerTablet PlayerTablet;
     void Awake()
     {
-        promptUIText = "Collect";
+        PromptUIText = "Collect";
         //PlayerTablet = FindFirstObjectByType<PlayerTablet>();
     }
 

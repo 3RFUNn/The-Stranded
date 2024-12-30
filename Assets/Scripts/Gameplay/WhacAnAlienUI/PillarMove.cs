@@ -1,19 +1,22 @@
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PillarMove : MonoBehaviour
 {
-    public Transform Top;
-    public Transform Bottom;
-    // Start is called before the first frame update
-    void Start()
-    {
+    public float MoveDistance, Duration;
 
+    // use duration in this component
+    public void MoveDown(){
+        MoveDown(Duration);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
+    public void MoveDown(float duration){
+        transform.DOMoveY(transform.position.y - MoveDistance, duration);
+    }
+
+    public void MoveUp(float duration) {
+        transform.DOMoveY(transform.position.y + MoveDistance, duration);
     }
 }

@@ -15,13 +15,13 @@ public class EnergyCharger : Interactable
         set {
             if (EnergySlider.value <= 100) {
                 if (value == 0) {
-                    promptUIText = "No fuel for recharge";
+                    PromptUIText = "No fuel for recharge";
                 }
                 else {
-                    promptUIText = "Recharge (you have " + value + "% fuel)";
+                    PromptUIText = "Recharge (you have " + value + "% fuel)";
                 }
             } else{
-                ShouldShowPrompt = false;
+                CanInteract = false;
             }
             _energyInventory = value;
         } 

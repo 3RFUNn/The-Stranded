@@ -10,7 +10,7 @@ public class CollectableFuel : ItemCollectible
 
     private void Awake() {
         EnergyCharger = GameObject.Find("EnergyCharger").GetComponent<EnergyCharger>();
-        promptUIText = "Collect Fuel";
+        PromptUIText = "Collect Fuel";
     }
 
     public override void Interact() {

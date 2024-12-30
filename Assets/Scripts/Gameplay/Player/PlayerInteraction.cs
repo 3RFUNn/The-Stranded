@@ -34,10 +34,10 @@ public class PlayerInteraction : MonoBehaviour
             // Check if the object hit has an Interactable component
             Interactable hitInteractable = hit.collider.GetComponent<Interactable>();
 
-            if (hitInteractable != null && hitInteractable.ShouldShowPrompt)
+            if (hitInteractable != null && hitInteractable.CanInteract)
             {
                 interactable = hitInteractable;
-                promptText.text = interactable.promptUIText;
+                promptText.text = interactable.PromptUIText;
                 //update the layout immediately to fit new text's length
                 LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
                 promptUI.gameObject.SetActive(true);

@@ -1,101 +1,90 @@
-
 using Cinemachine;
 using Gameplay.Interactions;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 public class WhacAnAlien : Interactable
 {
-    public PlayerInput PlayerInput;
-    public List<AlienMove> Aliens;
-    public List<GameObject> Doors;
-    public TextMeshProUGUI CountDownText, KeyPromptText, DoorOpenText, CrosshairPromptText;
+    public event Action OnCountdownOver;
+    public Action OnCountdownStart;     //will be invoked in AlienMove
+    
+    public TextMeshProUGUI CountdownText;
     [Range(0, 20)]
     public float CountDown;
-    public float timer;
-    public bool Started,isCountingDown;
-    public CinemachineVirtualCamera VCam;
-    //public WhacAnAlienPuzzleState state;
+    public bool isOneTimeMove = false;  //true if the pillar moves down only once and does not move back
+    public CinemachineVirtualCamera VCam;   //switch to this camera when the panel is interacted
+    public float MoveDuration = 0.8f;   //time for alien icon and pillar to move up and down
 
+    private bool _isCountingDown = false;
+    private float timer;
     void Start()
     {
-        Started = false;
         timer = CountDown;
-        isCountingDown = false;
     }
 
-    void Update() {
-        
-    }
     private void FixedUpdate() {
-        if (isCountingDown) {
+        if (!isOneTimeMove && _isCountingDown) {
             timer -= Time.deltaTime;
             if (timer <= 0) {
                 //timeover
                 StopAndReset();
-                foreach (var alien in Aliens){
-                    alien.shouldMoveUp = true;
-                }
-                ShouldShowPrompt = true;
             }
             else {
                 //counting
-                CountDownText.text = "Reset Time: " + timer.ToString("F1");
+                CountdownText.text = "Reset Time: " + timer.ToString("F1");
             }
         }
     }
+
     public override void Interact() {
-        if(!isCountingDown){
-            //KeyPromptText.enabled = true;
-            foreach (var i in Aliens) {
-                i.shouldMoveUp = true;
-            }
-        }
+        // move camera to preset viewing angle
         VCam.Priority = 20;
+        // hide hand rendering and HUD
         GamePhaseManager.instance.FPSHandCam.SetActive(false);
-        CrosshairPromptText.enabled = false;
-        PlayerInput.SwitchCurrentActionMap("UI");
-        ShouldShowPrompt = false;
+        GamePhaseManager.instance.HUD.SetActive(false);
+        // switch input
+        GamePhaseManager.instance.Input.SwitchCurrentActionMap("UI");
+        // hide prompt
+        CanInteract = false;
+        // show cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    public void StartCountingDown(){
+    public void OnAlienReachedBottom(){
+        // return to fps mode
         GamePhaseManager.instance.FPSHandCam.SetActive(true);
+        GamePhaseManager.instance.HUD.SetActive(true);
+        GamePhaseManager.instance.Resume();
         VCam.Priority = 10;
-        PlayerInput.SwitchCurrentActionMap("Player");
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
 
-        foreach(var door in Doors){
-            door.SetActive(false);
+        if (isOneTimeMove) {
+            StopAndReset();
+        }else{
+            _isCountingDown = true;
+            CountdownText.enabled = true;
         }
-
-        DoorOpenText.enabled = true;
-        CountDownText.enabled = true;
-        CrosshairPromptText.enabled = true;
-
-        isCountingDown = true;
     }
 
     public void StopAndReset(){
-        foreach (var door in Doors) {
-            door.SetActive(true);
+        if (isOneTimeMove) {
+            //the panel cannot be accessed anymore
+            CanInteract = false;
+        }else{
+            CanInteract = true;
+            // clear countdown states
+            CountdownText.enabled = false;
+            CountdownText.text = null;
+            timer = CountDown;
+            _isCountingDown = false;
+
+            // invoke and clear event
+            OnCountdownOver?.Invoke();
         }
-
-        DoorOpenText.enabled = false;
-        //KeyPromptText.enabled = false;
-        CountDownText.enabled = false;
-        CountDownText.text = null;
-        
-
-        timer = CountDown;
-        isCountingDown = false;
+        OnCountdownOver = null;
     }
-
 }
