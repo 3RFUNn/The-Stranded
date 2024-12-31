@@ -13,7 +13,8 @@ public class PillarMove : MonoBehaviour
     }
 
     public void MoveDown(float duration){
-        transform.DOMoveY(transform.position.y - MoveDistance, duration);
+        transform.DOMoveY(transform.position.y - MoveDistance, duration)
+            .SetUpdate(true);
     }
 
     public void MoveUp(float duration) {

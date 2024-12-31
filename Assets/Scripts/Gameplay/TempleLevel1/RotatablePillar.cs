@@ -29,13 +29,5 @@ public class RotatablePillar : MonoBehaviour
     }
 
     private void OnValidate() {
-        //InteractionText = GameObject.Find("UI").transform.Find("Canvas/HUD/RotateKeyPrompt").gameObject;
-        //if (!GetComponent<CapsuleCollider>()) {
-        //    CapsuleCollider collider = gameObject.AddComponent<CapsuleCollider>();
-        //    collider.center = new Vector3(0f, -5f, 0f);
-        //    collider.radius = 4f;
-        //    collider.height = 10f;
-        //    collider.isTrigger = true;
-        //}
     }
 }
