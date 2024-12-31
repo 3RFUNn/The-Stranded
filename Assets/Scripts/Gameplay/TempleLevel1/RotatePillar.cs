@@ -1,8 +1,11 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class RotatePillar: MonoBehaviour
 {
+    public static RotatePillar instance;    
+
     [Header("Settings")]
     public float detectionRange = 3f; // Range to detect the pillar or its child mirror
     [Range(0f, 360f)] // Allows you to adjust in the Inspector with a slider
@@ -10,24 +13,28 @@ public class RotatePillar: MonoBehaviour
     public float continuousRotationSpeed = 45f; // Speed for continuous rotation in degrees per second
 
     public GameObject interactionText; // Text UI to display "Press T to Rotate"
+    public Transform currentPillar; // Stores the currently detected pillar
 
-    private Transform currentPillar; // Stores the currently detected pillar
+    private float _inputAxis;
 
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
+        instance = this;
     }
 
     void Update()
     {
-        if (!AppHelper.gameEnded)
-        {
-            DetectPillarOrMirror();
-            HandleInteraction();
-        }else{
-            interactionText.SetActive(false);
+        //if (!AppHelper.gameEnded)
+        //{
+        //    DetectPillarOrMirror();
+        //    HandleInteraction();
+        //}else{
+        //    interactionText.SetActive(false);
+        //}
+        if(currentPillar != null){
+            RotateObject(currentPillar, _inputAxis * continuousRotationSpeed * Time.deltaTime);
         }
     }
 
@@ -88,5 +95,9 @@ public class RotatePillar: MonoBehaviour
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
+    }
+
+    public void OnRotate(InputAction.CallbackContext ctx) {
+        _inputAxis = ctx.ReadValue<float>();
     }
 }
