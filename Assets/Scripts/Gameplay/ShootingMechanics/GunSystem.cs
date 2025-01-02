@@ -1,238 +1,136 @@
 using UnityEngine;
 using TMPro;
-using DG.Tweening;
-using Cinemachine;
+//using EZCameraShake;
+
 
 public class GunSystem : MonoBehaviour
 {
-    // Gun stats
+    //Gun stats
     public int damage = 10;
     public float timeBetweenShooting, spread, range, reloadTime, timeBetweenShots;
     public int magazineSize, bulletsPerTap;
     public bool allowButtonHold;
     int bulletsLeft, bulletsShot;
 
-    // bools 
+
+    //bools 
     bool shooting, readyToShoot, reloading;
 
-    // References
-    public Camera fpsCam; // Camera reference
+
+    //Reference
+    public Camera fpsCam;
     public Transform attackPoint;
-    public Transform gunTransform; // Reference to the gun model's Transform
     public RaycastHit rayHit;
     public LayerMask whatIsEnemy;
 
-    // Cinemachine
-    public CinemachineImpulseSource impulseSource; // Cinemachine Impulse Source
 
-    // Graphics
-    public GameObject bulletHoleGraphicSand, bulletHoleGraphicBlood, bulletHoleGraphicMetal;
+    //Graphics
+    public GameObject bulletHoleGraphic;
+
     public ParticleSystem muzzleFlash;
+    //public CameraShaker camShake; // To be done later
+    public float camShakeMagnitude, camShakeDuration;
     public TextMeshProUGUI text;
 
-    // Recoil and animation settings
-    public float recoilDistance = 0.1f;
-    public float recoilDuration = 0.1f;
-    public float reloadTiltAngle = 20f;
-    public float reloadAnimationDuration = 0.5f;
-
-    // Sounds
-    public AudioSource audioSource;
-    public AudioClip gunShotSound;
-    public AudioClip reloadSound;
 
     private void Awake()
     {
         bulletsLeft = magazineSize;
         readyToShoot = true;
     }
-
     private void Update()
     {
-        // Update text
-        if (text != null)
-        {
+        //MyInput();
+
+
+        //SetText
+        if(text != null){
             text.SetText(bulletsLeft + "/" + magazineSize);
-        }
-        else
-        {
+        }else{
             Debug.LogWarning("Text is null");
         }
     }
-
     public void MyInput()
     {
         if (allowButtonHold) shooting = Input.GetKey(KeyCode.Mouse0);
         else shooting = Input.GetKeyDown(KeyCode.Mouse0);
 
-        // Reload input
-        if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && !reloading)
-        {
-            Reload();
-        }
 
+        //if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && !reloading) Reload();
+
+
+        //Shoot
         if (readyToShoot && shooting && !reloading && bulletsLeft > 0)
         {
             bulletsShot = bulletsPerTap;
             Shoot();
         }
     }
-
     private void Shoot()
     {
         readyToShoot = false;
 
-        // Play recoil animation
-        PlayRecoilAnimation();
 
-        // Play gunshot sound
-        PlayGunShotSound();
-
-        // Trigger camera shake
-        TriggerCameraShake();
-
-        // Spread
+        //Spread
         float x = Random.Range(-spread, spread);
         float y = Random.Range(-spread, spread);
 
-        // Calculate Direction with Spread
+
+        //Calculate Direction with Spread
         Vector3 direction = fpsCam.transform.forward + new Vector3(x, y, 0);
 
-        bool bulletHoleInstantiated = false;
 
-        // RayCast
+        //RayCast
         if (Physics.Raycast(fpsCam.transform.position, direction, out rayHit, range, whatIsEnemy))
         {
             Debug.Log(rayHit.collider.name);
 
+
             if (rayHit.collider.CompareTag("Enemy"))
             {
                 EnemyHealth health = rayHit.collider.GetComponent<EnemyHealth>();
-                if (health != null)
-                {
+                if(health != null){
                     health.TakeDamage(damage);
-                }
-                else
-                {
+                }else{
                     GameObject obj = rayHit.collider.gameObject;
                     Destroy(obj);
                 }
-                GameObject bulletHole = Instantiate(bulletHoleGraphicBlood, rayHit.point, Quaternion.LookRotation(rayHit.normal));
-                bulletHole.transform.SetParent(rayHit.transform);
+
             }
-            else
-            {
-                if (!rayHit.collider.CompareTag("InvisibleObject"))
-                {
-                    if (rayHit.collider.CompareTag("Sand"))
-                    {
-                        Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
-                    }
-                    else
-                    {
-                        Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.Euler(0, 180, 0));
-                    }
-                }
-            }
-            bulletHoleInstantiated = true;
         }
 
-        // Muzzle flash
+
+        //ShakeCamera
+        //camShake.Shake(camShakeDuration, camShakeMagnitude); // To be done later
+
+
+        //Graphics
+        Instantiate(bulletHoleGraphic, rayHit.point, Quaternion.Euler(0, 180, 0));
         muzzleFlash.Play();
+
 
         bulletsLeft--;
         bulletsShot--;
+
+
         Invoke("ResetShot", timeBetweenShooting);
+
 
         if (bulletsShot > 0 && bulletsLeft > 0)
             Invoke("Shoot", timeBetweenShots);
     }
-
-    private void PlayRecoilAnimation()
-    {
-        if (gunTransform != null)
-        {
-            gunTransform
-                .DOLocalMoveZ(-recoilDistance, recoilDuration)
-                .SetEase(Ease.OutQuad)
-                .OnComplete(() =>
-                {
-                    gunTransform.DOLocalMoveZ(0, recoilDuration).SetEase(Ease.InQuad);
-                });
-        }
-    }
-
-    private void PlayGunShotSound()
-    {
-        if (audioSource != null && gunShotSound != null)
-        {
-            audioSource.PlayOneShot(gunShotSound);
-        }
-        else
-        {
-            Debug.LogWarning("AudioSource or GunShotSound is not assigned!");
-        }
-    }
-
-    private void TriggerCameraShake()
-    {
-        if (impulseSource != null)
-        {
-            impulseSource.GenerateImpulse();
-        }
-        else
-        {
-            Debug.LogWarning("Cinemachine Impulse Source is not assigned!");
-        }
-    }
-
     private void ResetShot()
     {
         readyToShoot = true;
     }
-
     public void Reload()
     {
-        if (bulletsLeft < magazineSize && !reloading)
-        {
+
+        if(bulletsLeft < magazineSize && !reloading){
             reloading = true;
-
-            // Play reload sound
-            PlayReloadSound();
-
-            // Play reload animation
-            PlayReloadAnimation();
-
             Invoke("ReloadFinished", reloadTime);
         }
     }
-
-    private void PlayReloadSound()
-    {
-        if (audioSource != null && reloadSound != null)
-        {
-            audioSource.PlayOneShot(reloadSound);
-        }
-        else
-        {
-            Debug.LogWarning("AudioSource or ReloadSound is not assigned!");
-        }
-    }
-
-    private void PlayReloadAnimation()
-    {
-        if (gunTransform != null)
-        {
-            gunTransform
-                .DOLocalRotate(new Vector3(-reloadTiltAngle, 0, 0), reloadAnimationDuration)
-                .SetEase(Ease.OutQuad)
-                .OnComplete(() =>
-                {
-                    gunTransform.DOLocalRotate(Vector3.zero, reloadAnimationDuration).SetEase(Ease.InQuad);
-                });
-        }
-    }
-
     private void ReloadFinished()
     {
         bulletsLeft = magazineSize;
