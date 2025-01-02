@@ -25,7 +25,7 @@ public class GunSystem : MonoBehaviour
 
 
     //Graphics
-    public GameObject bulletHoleGraphic;
+    public GameObject bulletHoleGraphicSand, bulletHoleGraphicBlood, bulletHoleGraphicMetal;
 
     public ParticleSystem muzzleFlash;
     //public CameraShaker camShake; // To be done later
@@ -79,7 +79,7 @@ public class GunSystem : MonoBehaviour
         //Calculate Direction with Spread
         Vector3 direction = fpsCam.transform.forward + new Vector3(x, y, 0);
 
-
+        bool bulletHoleInstantiated = false;
         //RayCast
         if (Physics.Raycast(fpsCam.transform.position, direction, out rayHit, range, whatIsEnemy))
         {
@@ -95,8 +95,20 @@ public class GunSystem : MonoBehaviour
                     GameObject obj = rayHit.collider.gameObject;
                     Destroy(obj);
                 }
+                GameObject bulletHole = Instantiate(bulletHoleGraphicBlood, rayHit.point, Quaternion.LookRotation(rayHit.normal));
 
+                // Set the bullet hole as a child of the object it hits to ensure it moves with the object
+                bulletHole.transform.SetParent(rayHit.transform);
+            }else{
+                if (!rayHit.collider.CompareTag("InvisibleObject")){
+                    if(rayHit.collider.CompareTag("Sand")){
+                        Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
+                    }else{
+                        Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.Euler(0, 180, 0));
+                    }
+                }
             }
+            bulletHoleInstantiated = true;
         }
 
 
@@ -105,17 +117,26 @@ public class GunSystem : MonoBehaviour
 
 
         //Graphics
-        Instantiate(bulletHoleGraphic, rayHit.point, Quaternion.Euler(0, 180, 0));
+        // GameObject bulletEffect = rayHit.collider.CompareTag("Enemy")?bulletHoleGraphicBlood : bulletHoleGraphic;
+        if(!bulletHoleInstantiated){
+            Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
+        }
+        //  if (!rayHit.collider.CompareTag("InvisibleObject")){
+        //     GameObject bulletHole = Instantiate(bulletEffect, rayHit.point, Quaternion.LookRotation(rayHit.normal));
+
+        //     // Set the bullet hole as a child of the object it hits to ensure it moves with the object
+        //     bulletHole.transform.SetParent(rayHit.transform);
+        // }
+
+
+        // GameObject bulletHole = Instantiate(bulletEffect, rayHit.point, Quaternion.LookRotation(rayHit.normal));
+
+        // // Set the bullet hole as a child of the object it hits to ensure it moves with the object
+        // bulletHole.transform.SetParent(rayHit.transform);
         muzzleFlash.Play();
-
-
         bulletsLeft--;
         bulletsShot--;
-
-
         Invoke("ResetShot", timeBetweenShooting);
-
-
         if (bulletsShot > 0 && bulletsLeft > 0)
             Invoke("Shoot", timeBetweenShots);
     }
