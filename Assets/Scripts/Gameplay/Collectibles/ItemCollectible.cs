@@ -7,6 +7,9 @@ public class ItemCollectible : Interactable
 {
     public string itemName; // Set this in the Inspector, e.g., "Wood" or "Stone"
     [SerializeField] private GameObject player;
+    public AudioSource audioSource;
+
+    public AudioClip audioClip;
     
 
     public override void Interact()
@@ -16,8 +19,12 @@ public class ItemCollectible : Interactable
         if (inventory != null)
         {
             inventory.CollectItem(itemName);
-            Destroy(gameObject); // Destroy the collectible item after picking it up
+            if (audioSource != null && audioClip != null)
+            {
+                audioSource.PlayOneShot(audioClip);
+            }
             Debug.Log(itemName + " collected");
+            Destroy(gameObject); // Destroy the collectible item after picking it up
         }
 
 
