@@ -4,8 +4,8 @@ namespace Gameplay.Interactions
 {
     public abstract class Interactable : MonoBehaviour
     {
-        public string promptUIText;
-        public bool ShouldShowPrompt = true;
+        public string PromptUIText;
+        public bool CanInteract = true;
         public virtual void Interact()
         {
             // Base interaction method. This will be overridden by derived classes.

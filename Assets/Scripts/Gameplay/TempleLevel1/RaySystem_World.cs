@@ -9,9 +9,9 @@ public class RaySystem_World : MonoBehaviour
     [SerializeField] private LineRenderer lineRenderer;
     [SerializeField] private GameObject gem;
 
-    [SerializeField] private float maxReflectionDistance = 50f;
+    [SerializeField] private float maxReflectionDistance = 100f;
 
-    private const int totalReflectionsAllowed = 5;
+    public int totalReflectionsAllowed = 6;
 
     private HashSet<Transform> uniqueMirrors = new HashSet<Transform>();
 

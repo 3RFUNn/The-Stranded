@@ -40,6 +40,11 @@ public class GamePhaseManager : MonoBehaviour
 
     void Start()
     {
+#if !UNITY_EDITOR
+        EnableIntro = true;
+        StartWithTablet = false;
+        StartWithFullFuel = false;
+#endif
         if (EnableIntro) {
             //switch to mainmenu VCam
             FpsVCam.Priority = -1;
@@ -76,7 +81,7 @@ public class GamePhaseManager : MonoBehaviour
         HideAndLockCursor();    
 
         //hide HUD and disable input
-        Cutscene(true);
+        SwitchCutscene(true);
 
         //play intro cutscene
         Director.Play();
@@ -94,7 +99,7 @@ public class GamePhaseManager : MonoBehaviour
         FpsVCam.Priority = 13;
 
         //show HUD and enable input
-        Cutscene(false);
+        SwitchCutscene(false);
 
         //hide cutscene objects
         CutSceneGO.SetActive(false);
@@ -156,7 +161,7 @@ public class GamePhaseManager : MonoBehaviour
     }
 
     //handle HUD and input availability when enter/exit a cutscene
-    public void Cutscene(bool isInCutscene){
+    public void SwitchCutscene(bool isInCutscene){
         if (isInCutscene) {
             HUD.SetActive(false);
             Input.enabled = false;
