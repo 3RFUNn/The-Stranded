@@ -3,6 +3,7 @@ using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Playables;
@@ -30,6 +31,12 @@ public class GamePhaseManager : MonoBehaviour
     public bool EnableEnemy;
     public bool StartWithTablet = false;
     public bool StartWithFullFuel = false;
+
+    public AudioSource GenericAudioSource;
+
+    public GameObject FloaterText;
+
+    public Transform FloaterMessageSpawnPoint;
 
     private GameObject _currentUI;
 
