@@ -30,6 +30,9 @@ public class GunSystem : MonoBehaviour
     public ParticleSystem muzzleFlash;
     public TextMeshProUGUI text;
 
+    //kill counter 
+    public TextMeshProUGUI killCounterText;
+
     // Recoil and animation settings
     public float recoilDistance = 0.1f;
     public float recoilDuration = 0.1f;
@@ -40,6 +43,10 @@ public class GunSystem : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip gunShotSound;
     public AudioClip reloadSound;
+
+    //variable to track the kill counter
+    private int killCounter;
+
 
     private void Awake()
     {
@@ -111,11 +118,13 @@ public class GunSystem : MonoBehaviour
                 if (health != null)
                 {
                     health.TakeDamage(damage);
+                    IncrementKillCounter();
                 }
                 else
                 {
                     GameObject obj = rayHit.collider.gameObject;
                     Destroy(obj);
+                    IncrementKillCounter();
                 }
                 GameObject bulletHole = Instantiate(bulletHoleGraphicBlood, rayHit.point, Quaternion.LookRotation(rayHit.normal));
                 bulletHole.transform.SetParent(rayHit.transform);
@@ -237,5 +246,19 @@ public class GunSystem : MonoBehaviour
     {
         bulletsLeft = magazineSize;
         reloading = false;
+    }
+
+    private void IncrementKillCounter()
+    {
+        killCounter++;
+        UpdateKillCounterUI();
+    }
+
+    private void UpdateKillCounterUI()
+    {
+        if (killCounterText != null)
+        {
+            killCounterText.SetText("Kills: " + killCounter);
+        }
     }
 }
