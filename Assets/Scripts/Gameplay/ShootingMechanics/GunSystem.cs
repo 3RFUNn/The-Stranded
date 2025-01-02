@@ -105,6 +105,8 @@ public class GunSystem : MonoBehaviour
         // Calculate Direction with Spread
         Vector3 direction = fpsCam.transform.forward + new Vector3(x, y, 0);
 
+        bool bulletHoleInstantiated = false;
+
         // RayCast
         if (Physics.Raycast(fpsCam.transform.position, direction, out rayHit, range, whatIsEnemy))
         {
@@ -133,18 +135,15 @@ public class GunSystem : MonoBehaviour
                 {
                     if (rayHit.collider.CompareTag("Sand"))
                     {
-                        GameObject bulletHole = Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.LookRotation(rayHit.normal));
-                        bulletHole.transform.SetParent(rayHit.transform);
-                        // Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
+                        Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
                     }
                     else
                     {
-                        GameObject bulletHole = Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.LookRotation(rayHit.normal));
-                        bulletHole.transform.SetParent(rayHit.transform);
-                        // Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.Euler(0, 180, 0));
+                        Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.Euler(0, 180, 0));
                     }
                 }
             }
+            bulletHoleInstantiated = true;
         }
 
         // Muzzle flash

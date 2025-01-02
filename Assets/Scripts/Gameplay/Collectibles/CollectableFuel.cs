@@ -15,8 +15,6 @@ public class CollectableFuel : ItemCollectible
 
     public override void Interact() {
         EnergyCharger.EnergyInventory += EnergyValue;
-        PlaySound();
-        ShowFloaterMessage();
         Destroy(gameObject);
     }
 }

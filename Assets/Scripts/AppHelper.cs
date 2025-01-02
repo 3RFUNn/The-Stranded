@@ -14,8 +14,6 @@ public static class AppHelper
 
     public static bool hintDisplayed = false; 
 
-    public static bool hasKey = false;
-
     // Example of a method to reset the data
     public static void ResetData()
     {
