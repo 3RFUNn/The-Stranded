@@ -44,22 +44,9 @@ public class EnemyHealth : MonoBehaviour
     
     public void DropLoot()
     {
-        GameObject itemToDrop = null;
-
-        switch (parent.tag)
-        {
-            case "Melee":
-                itemToDrop = resourcePrefab;
-                break;
-            case "Coward":
-                itemToDrop = healthTokenPrefab;
-                break;
-        }
-
-        if (itemToDrop != null)
-        {
-            Instantiate(itemToDrop, parent.transform.position, Quaternion.identity);
-        }
+       
+        resourcePrefab.transform.SetParent(null);
+        resourcePrefab.gameObject.SetActive(true);
 
         Destroy(parent); // Destroy the enemy game object
     }
