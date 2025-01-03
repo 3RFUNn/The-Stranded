@@ -12,11 +12,8 @@ public class ItemCollectible : Interactable
     private Transform messageSpawnPoint; // Point to spawn the floater message
     public string itemName; // Set this in the Inspector, e.g., "Wood" or "Stone"
     [SerializeField] private GameObject player;
-    private AudioSource audioSource;
 
     public string PostCollectText = "Collected!";
-
-    public AudioClip audioClip;
 
     public override void Interact()
     {
@@ -32,14 +29,7 @@ public class ItemCollectible : Interactable
         }
     }
 
-    public void PlaySound()
-    {
-        audioSource = GamePhaseManager.instance.GenericAudioSource;
-        if (audioSource != null && audioClip != null)
-        {
-            audioSource.PlayOneShot(audioClip);
-        }
-    }
+    
 
     public void ShowFloaterMessage()
     {
@@ -49,6 +39,13 @@ public class ItemCollectible : Interactable
 
         if (floaterMessagePrefab != null && messageSpawnPoint != null)
         {
+            // Check if there are any children under messageSpawnPoint and destroy them
+            foreach (Transform child in messageSpawnPoint)
+            {
+                Destroy(child.gameObject);
+            }
+
+            // Instantiate a new floater as a child of messageSpawnPoint
             GameObject floater = Instantiate(floaterMessagePrefab, messageSpawnPoint.position, Quaternion.identity, messageSpawnPoint);
             Debug.Log("Floater Instantiated!");
             TextMeshProUGUI messageText = floater.GetComponentInChildren<TextMeshProUGUI>();
@@ -77,4 +74,5 @@ public class ItemCollectible : Interactable
             Debug.LogError("Floater message prefab or spawn point not assigned.");
         }
     }
+
 }
