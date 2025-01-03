@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using DG.Tweening;
 using Cinemachine;
+using Ink.Parsed;
 
 public class GunSystem : MonoBehaviour
 {
@@ -42,6 +43,8 @@ public class GunSystem : MonoBehaviour
     // Sounds
     public AudioSource audioSource;
     public AudioClip gunShotSound;
+
+    public AudioClip emptyBulletsGunShotSound;
     public AudioClip reloadSound;
 
     //variable to track the kill counter
@@ -59,7 +62,11 @@ public class GunSystem : MonoBehaviour
         // Update text
         if (text != null)
         {
-            text.SetText(bulletsLeft + "/" + magazineSize);
+            if(bulletsLeft <= 5){
+                text.SetText($"<color=red>{bulletsLeft}</color>/{magazineSize}");
+            }else{
+                text.SetText(bulletsLeft + "/" + magazineSize);
+            }
         }
         else
         {
@@ -82,6 +89,11 @@ public class GunSystem : MonoBehaviour
         {
             bulletsShot = bulletsPerTap;
             Shoot();
+        } else if(bulletsLeft <= 0 && !reloading){
+            if (audioSource != null && emptyBulletsGunShotSound != null)
+            {
+                audioSource.PlayOneShot(emptyBulletsGunShotSound);
+            }
         }
     }
 
@@ -115,8 +127,7 @@ public class GunSystem : MonoBehaviour
                 EnemyHealth health = rayHit.collider.GetComponent<EnemyHealth>();
                 if (health != null)
                 {
-                    health.TakeDamage(damage);
-                    IncrementKillCounter();
+                    health.TakeDamage(damage, IncrementKillCounter);
                 }
                 else
                 {
@@ -154,8 +165,14 @@ public class GunSystem : MonoBehaviour
         bulletsShot--;
         Invoke("ResetShot", timeBetweenShooting);
 
-        if (bulletsShot > 0 && bulletsLeft > 0)
+        if (bulletsShot > 0 && bulletsLeft > 0){
             Invoke("Shoot", timeBetweenShots);
+        }else if(bulletsLeft <= 0 && !reloading){
+            if (audioSource != null && emptyBulletsGunShotSound != null)
+            {
+                audioSource.PlayOneShot(emptyBulletsGunShotSound);
+            }
+        }
     }
 
     private void PlayRecoilAnimation()
@@ -259,7 +276,7 @@ public class GunSystem : MonoBehaviour
     {
         if (killCounterText != null)
         {
-            killCounterText.SetText("Kills: " + killCounter);
+            killCounterText.SetText(killCounter.ToString());
         }
     }
 }

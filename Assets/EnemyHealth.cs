@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,15 +20,18 @@ public class EnemyHealth : MonoBehaviour
         healthBar.SetHealth(maxHealth);
     }
 
-    public void TakeDamage( int damage)
+    public void TakeDamage( int damage, Action callback)
     {
         Debug.Log("Take Damage!");
         currentHealth -= damage;
-        healthBar.SetHealth(currentHealth, CheckAndUpdate);
+        healthBar.SetHealth(currentHealth,()=>{
+            CheckAndUpdate(callback);
+        } );
     }
 
-    void CheckAndUpdate(){
+    void CheckAndUpdate(Action callback){
         if(currentHealth <= 0){
+            callback?.Invoke();
             Destroy(parent);
         }
     }
