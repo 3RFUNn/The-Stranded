@@ -3,6 +3,7 @@ using TMPro;
 using DG.Tweening;
 using Cinemachine;
 using Ink.Parsed;
+using System.Threading.Tasks;
 
 public class GunSystem : MonoBehaviour
 {
@@ -54,6 +55,8 @@ public class GunSystem : MonoBehaviour
     //variable to track the kill counter
     private int killCounter;
 
+    private bool canPlayEmptyBulletSound = true; 
+
 
     private void Awake()
     {
@@ -96,11 +99,8 @@ public class GunSystem : MonoBehaviour
         {
             bulletsShot = bulletsPerTap;
             Shoot();
-        } else if(bulletsLeft <= 0 && !reloading){
-            if (audioSource != null && emptyBulletsGunShotSound != null)
-            {
-                audioSource.PlayOneShot(emptyBulletsGunShotSound);
-            }
+        } else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
         }
     }
 
@@ -174,12 +174,20 @@ public class GunSystem : MonoBehaviour
 
         if (bulletsShot > 0 && bulletsLeft > 0){
             Invoke("Shoot", timeBetweenShots);
-        }else if(bulletsLeft <= 0 && !reloading){
-            if (audioSource != null && emptyBulletsGunShotSound != null)
-            {
-                audioSource.PlayOneShot(emptyBulletsGunShotSound);
-            }
+        }else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
         }
+    }
+
+    private async void PlayEmptyBulletsSounds(){
+        if (audioSource != null && emptyBulletsGunShotSound != null)
+            {
+                canPlayEmptyBulletSound = false;
+                audioSource.PlayOneShot(emptyBulletsGunShotSound);
+                await Task.Delay(100);
+                canPlayEmptyBulletSound = true;
+
+            }
     }
 
     private void PlayRecoilAnimation()
@@ -227,7 +235,7 @@ public class GunSystem : MonoBehaviour
 
     public void Reload()
     {
-        if (totalAmmo > 0 && bulletsLeft < magazineSize)
+        if (totalAmmo > 0 && bulletsLeft < magazineSize && !reloading)
         {
             reloading = true;
 
