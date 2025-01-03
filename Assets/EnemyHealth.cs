@@ -28,7 +28,7 @@ public class EnemyHealth : MonoBehaviour
         healthBar.SetHealth(maxHealth);
     }
 
-    public void TakeDamage( int damage)
+    public void TakeDamage(int damage, System.Action callback)
     {
         Debug.Log("Take Damage!");
         currentHealth -= damage;
