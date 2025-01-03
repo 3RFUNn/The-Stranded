@@ -1,8 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 
 public class PauseMenuController : MonoBehaviour
 {
@@ -13,8 +12,8 @@ public class PauseMenuController : MonoBehaviour
 
     private bool isPaused = false;
 
+    private Button currentSelectedButton;
 
-    // Start is called before the first frame update
     void Start()
     {
         pauseMenuPanel.SetActive(false);
@@ -23,9 +22,10 @@ public class PauseMenuController : MonoBehaviour
         restartButton.onClick.AddListener(RestartGame);
         settingsButton.onClick.AddListener(OpenSettings);
 
+        currentSelectedButton = resumeButton;
+        UpdateButtonVisuals();
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.P))
@@ -35,6 +35,23 @@ public class PauseMenuController : MonoBehaviour
             else
                 PauseGame();
         }
+
+        if (isPaused)
+        {
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                SelectPreviousButton();
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                SelectNextButton();
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return))
+            {
+                currentSelectedButton.onClick.Invoke();
+            }
+        }
     }
 
     void PauseGame()
@@ -42,6 +59,7 @@ public class PauseMenuController : MonoBehaviour
         Time.timeScale = 0f;
         pauseMenuPanel.SetActive(true);
         isPaused = true;
+        EventSystem.current.SetSelectedGameObject(currentSelectedButton.gameObject);
     }
 
     void ResumeGame()
@@ -60,6 +78,40 @@ public class PauseMenuController : MonoBehaviour
     void OpenSettings()
     {
         Debug.Log("Opening Settings");
+    }
 
+    void SelectNextButton()
+    {
+        if (currentSelectedButton == restartButton)
+            currentSelectedButton = resumeButton;
+        else if (currentSelectedButton == resumeButton)
+            currentSelectedButton = settingsButton;
+        else if (currentSelectedButton == settingsButton)
+            currentSelectedButton = restartButton;
+
+        UpdateButtonVisuals();
+        EventSystem.current.SetSelectedGameObject(currentSelectedButton.gameObject);
+    }
+
+    void SelectPreviousButton()
+    {
+        if (currentSelectedButton == settingsButton)
+            currentSelectedButton = resumeButton;
+        else if (currentSelectedButton == resumeButton)
+            currentSelectedButton = restartButton;
+        else if (currentSelectedButton == restartButton)
+            currentSelectedButton = settingsButton;
+        UpdateButtonVisuals();
+        EventSystem.current.SetSelectedGameObject(currentSelectedButton.gameObject);
+    }
+
+
+    void UpdateButtonVisuals()
+    {
+        resumeButton.transform.localScale = Vector3.one;
+        restartButton.transform.localScale = Vector3.one;
+        settingsButton.transform.localScale = Vector3.one;
+
+        currentSelectedButton.transform.localScale = new Vector3(1.2f, 1.2f, 1f);
     }
 }
