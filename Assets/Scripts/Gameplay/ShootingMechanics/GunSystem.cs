@@ -13,6 +13,10 @@ public class GunSystem : MonoBehaviour
     public bool allowButtonHold;
     int bulletsLeft, bulletsShot;
 
+    //Ammo System
+    public int totalAmmo = 90; // Total ammo carried by the player
+
+
     // bools 
     bool shooting, readyToShoot, reloading;
 
@@ -62,10 +66,13 @@ public class GunSystem : MonoBehaviour
         // Update text
         if (text != null)
         {
-            if(bulletsLeft <= 5){
-                text.SetText($"<color=red>{bulletsLeft}</color>/{magazineSize}");
-            }else{
-                text.SetText(bulletsLeft + "/" + magazineSize);
+            if (bulletsLeft <= 5)
+            {
+                text.SetText($"<color=red>{bulletsLeft}<color=white>/{totalAmmo}");
+            }
+            else
+            {
+                text.SetText($"{bulletsLeft}/{totalAmmo}");
             }
         }
         else
@@ -220,14 +227,11 @@ public class GunSystem : MonoBehaviour
 
     public void Reload()
     {
-        if (bulletsLeft < magazineSize && !reloading)
+        if (totalAmmo > 0 && bulletsLeft < magazineSize)
         {
             reloading = true;
 
-            // Play reload sound
             PlayReloadSound();
-
-            // Play reload animation
             PlayReloadAnimation();
 
             Invoke("ReloadFinished", reloadTime);
@@ -262,7 +266,12 @@ public class GunSystem : MonoBehaviour
 
     private void ReloadFinished()
     {
-        bulletsLeft = magazineSize;
+        int bulletsToReload = magazineSize - bulletsLeft;
+        int bulletsAvailable = Mathf.Min(bulletsToReload, totalAmmo);
+
+        bulletsLeft += bulletsAvailable;
+        totalAmmo -= bulletsAvailable;
+
         reloading = false;
     }
 
