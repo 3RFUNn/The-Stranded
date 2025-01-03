@@ -14,8 +14,8 @@ public class InventoryManager : MonoBehaviour
     void Start()
     {
         // Initialize the inventory with items set to 0
-        inventory["Wood"] = 0;
-        inventory["Stone"] = 0;
+        inventory["Pulsar"] = 0;
+        inventory["Nebula"] = 0;
         UpdateInventoryUI();
     }
 
@@ -32,17 +32,17 @@ public class InventoryManager : MonoBehaviour
     // Update the UI to reflect current item counts
     void UpdateInventoryUI()
     {
-        inventoryText.text = $"Wood: {inventory["Wood"]} | Stone: {inventory["Stone"]}";
+        inventoryText.text = $"Pulsar: {inventory["Pulsar"]} | Nebula: {inventory["Nebula"]}";
     }
 
     // Function to craft an item (e.g., sword) if enough resources are available
     public void CraftItem()
     {
-        if (inventory["Wood"] >= 1 && inventory["Stone"] >= 1) // Example requirement
+        if (inventory["Pulsar"] >= 1 && inventory["Nebula"] >= 1) // Example requirement
         {
             // Deduct required materials
-            inventory["Wood"] -= 1;
-            inventory["Stone"] -= 1;
+            inventory["Pulsar"] -= 1;
+            inventory["Nebula"] -= 1;
             UpdateInventoryUI();
             Debug.Log("Crafted an Item!");
             

@@ -58,7 +58,7 @@ public class EnemyHealth : MonoBehaviour
 
         if (itemToDrop != null)
         {
-            Instantiate(itemToDrop, transform.position, Quaternion.identity);
+            Instantiate(itemToDrop, parent.transform.position, Quaternion.identity);
         }
 
         Destroy(parent); // Destroy the enemy game object
