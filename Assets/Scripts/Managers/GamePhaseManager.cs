@@ -34,6 +34,10 @@ public class GamePhaseManager : MonoBehaviour
 
     public AudioSource GenericAudioSource;
 
+    public AudioSource BackgroundAudioSource;
+
+    public AudioClip BackgroundMusicClip;
+
     public GameObject FloaterText;
 
     public Transform FloaterMessageSpawnPoint;
@@ -69,6 +73,7 @@ public class GamePhaseManager : MonoBehaviour
             MainMenu.SetActive(false);
             HideAndLockCursor();
             HUD.SetActive(true);
+            PlayPostCutSceneBGM();
         }
 
         if (StartWithTablet){
@@ -81,6 +86,13 @@ public class GamePhaseManager : MonoBehaviour
         }
 
         EnemySpawner.enabled = EnableEnemy ? true : false;
+    }
+
+    private void PlayPostCutSceneBGM(){
+        if (BackgroundAudioSource != null && BackgroundMusicClip != null)
+        {
+            BackgroundAudioSource.PlayOneShot(BackgroundMusicClip);
+        }
     }
 
     //this is called when start button in main menu is clicked
@@ -176,6 +188,7 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
+            PlayPostCutSceneBGM();
         }
     }
 
