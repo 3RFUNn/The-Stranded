@@ -9,7 +9,7 @@ public class PlayerHealth : MonoBehaviour
 {
 
     public int maxHealth = 100;
-    private int currentHealth;
+    public int currentHealth;
     public HealthBar healthBar;
 
     public GameObject youDied;
@@ -31,6 +31,13 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("Take Damage!");
         currentHealth -= damage;
+        healthBar.SetHealth(currentHealth, CheckAndUpdate);
+    }
+
+    public void IncreaseHealth(int healthBonus)
+    {
+        Debug.Log("Healed!");
+        currentHealth = currentHealth + healthBonus;
         healthBar.SetHealth(currentHealth, CheckAndUpdate);
     }
 
