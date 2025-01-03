@@ -10,6 +10,8 @@ public class EnemyHealth : MonoBehaviour
     public int maxHealth = 100;
     private int currentHealth;
     public HealthBar healthBar;
+    public GameObject healthBoostPrefab;
+    public float spawnDelay = 3f;
     [SerializeField] private GameObject parent;
     private EnemyLoot loot;
     
@@ -38,7 +40,15 @@ public class EnemyHealth : MonoBehaviour
     void CheckAndUpdate(){
         if(currentHealth <= 0){
             TriggerAnimationAndDropLoot();
+            StartCoroutine(SpawnHealthBoostWithDelay());
+            //Instantiate(healthBoostPrefab, transform.position, Quaternion.identity);
         }
+    }
+
+    IEnumerator SpawnHealthBoostWithDelay()
+    {
+        yield return new WaitForSeconds(spawnDelay);
+        Instantiate(healthBoostPrefab, transform.position, Quaternion.identity);
     }
     
     
