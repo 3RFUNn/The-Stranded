@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 public class PauseMenuController : MonoBehaviour
 {
     public GameObject pauseMenuPanel;
+    public GameObject soundsMenuPanel;
     public Button resumeButton;
     public Button restartButton;
     public Button settingsButton;
@@ -30,6 +31,7 @@ public class PauseMenuController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.P))
         {
+            Debug.Log("P pressed, isPaused: " + isPaused);
             if (isPaused)
                 ResumeGame();
             else
@@ -60,13 +62,16 @@ public class PauseMenuController : MonoBehaviour
         pauseMenuPanel.SetActive(true);
         isPaused = true;
         EventSystem.current.SetSelectedGameObject(currentSelectedButton.gameObject);
+        Debug.Log("Game Paused");
     }
 
     void ResumeGame()
     {
         Time.timeScale = 1f;
         pauseMenuPanel.SetActive(false);
+        soundsMenuPanel.SetActive(false);
         isPaused = false;
+        Debug.Log("Game Resumed");
     }
 
     void RestartGame()
@@ -78,7 +83,15 @@ public class PauseMenuController : MonoBehaviour
     void OpenSettings()
     {
         Debug.Log("Opening Settings");
+        pauseMenuPanel.SetActive(false);
+        soundsMenuPanel.SetActive(true);
+    }
 
+    public void CloseSettings()
+    {
+        Debug.Log("Closing Settings");
+        pauseMenuPanel.SetActive(true);
+        soundsMenuPanel.SetActive(false);
     }
 
     void SelectNextButton()
