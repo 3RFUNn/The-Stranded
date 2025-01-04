@@ -22,6 +22,8 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
     public float maxHeightDifference = 2.0f; // Max height difference for spawn position
     public LayerMask terrainLayer; // Layer mask for detecting terrain
 
+    private Dictionary<Level, List<GameObject>> spawnedEnemies = new Dictionary<Level, List<GameObject>>(); // Tracks spawned enemies per level
+
     public void InitiateEnemies()
     {
         for (int i = 0; i < levels.Count; i++)
@@ -46,6 +48,21 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
             return;
         }
 
+        // Destroy existing enemies for this level
+        if (spawnedEnemies.ContainsKey(selectedLevel))
+        {
+            foreach (GameObject enemy in spawnedEnemies[selectedLevel])
+            {
+                if (enemy != null) Destroy(enemy);
+            }
+            spawnedEnemies[selectedLevel].Clear();
+        }
+        else
+        {
+            spawnedEnemies[selectedLevel] = new List<GameObject>();
+        }
+
+        // Spawn new enemies
         int cowardEnemiesToSpawn = Mathf.RoundToInt(selectedLevel.totalEnemiesToSpawn * (selectedLevel.cowardEnemyPercentage / 100f));
         int meleeEnemiesToSpawn = selectedLevel.totalEnemiesToSpawn - cowardEnemiesToSpawn;
 
@@ -61,7 +78,7 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
             SpawnEnemy(selectedLevel, selectedLevel.meleeEnemyPrefab);
         }
 
-        Debug.Log($"Enemies spawned for {selectedLevel.levelName}: {cowardEnemiesToSpawn} coward, {meleeEnemiesToSpawn} melee.");
+        Debug.Log($"Enemies respawned for {selectedLevel.levelName}: {cowardEnemiesToSpawn} coward, {meleeEnemiesToSpawn} melee. Total spawned: {spawnedEnemies[selectedLevel].Count}.");
     }
 
     private void SpawnEnemy(Level level, GameObject enemyPrefab)
@@ -85,6 +102,7 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
                 GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
                 enemy.SetActive(true);
                 enemy.transform.parent = level.levelReference; // Parent to level for organization
+                spawnedEnemies[level].Add(enemy); // Track spawned enemy
                 return; // Exit after successful spawn
             }
         }
