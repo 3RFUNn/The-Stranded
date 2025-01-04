@@ -77,9 +77,10 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
 
             Vector3 spawnPosition = GetSpawnPosition(randomPosition);
 
-            // Check if the position is valid
+            // Check if the position is valid and not inside a building
             if (IsPositionOnNavMesh(spawnPosition) &&
-                IsPositionReachable(level.levelReference.position, spawnPosition))
+                IsPositionReachable(level.levelReference.position, spawnPosition) &&
+                !IsInsideBuilding(spawnPosition))
             {
                 GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
                 enemy.SetActive(true);
@@ -136,5 +137,11 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool IsInsideBuilding(Vector3 position)
+    {
+        Collider[] colliders = Physics.OverlapSphere(position, 0.5f, LayerMask.GetMask("Visible"));
+        return colliders.Length > 0; // Returns true if any building colliders are found
     }
 }
