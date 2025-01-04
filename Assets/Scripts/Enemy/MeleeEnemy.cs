@@ -40,7 +40,7 @@ public class MeleeEnemy : BaseEnemy
         UpdateAnimationState(false, false, true, false);
 
         // Play movement sounds
-        if (movementSounds.Length > 0 && Time.time % 2 < 0.1f)
+        if (movementSounds.Length > 0 && Time.time % 1.5 < 0.1f)
         {
             PlayRandomSound(movementSounds);
         }

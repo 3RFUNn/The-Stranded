@@ -38,6 +38,8 @@ public class GamePhaseManager : MonoBehaviour
 
     public AudioClip BackgroundMusicClip;
 
+    public AudioClip EnemyDieClip;
+
     public GameObject FloaterText;
 
     public Transform FloaterMessageSpawnPoint;

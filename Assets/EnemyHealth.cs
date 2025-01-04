@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UIElements;
+using System;
 
 public class EnemyHealth : MonoBehaviour
 {
@@ -22,6 +23,8 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Rigidbody rb;
 
+    public string EnemyType = "Melee";
+
 
     // Start is called before the first frame update
     void Start()
@@ -30,15 +33,16 @@ public class EnemyHealth : MonoBehaviour
         healthBar.SetHealth(maxHealth);
     }
 
-    public void TakeDamage(int damage, System.Action callback)
+    public void TakeDamage(int damage, Action callback)
     {
         Debug.Log("Take Damage!");
         currentHealth -= damage;
-        healthBar.SetHealth(currentHealth, CheckAndUpdate);
+        healthBar.SetHealth(currentHealth,()=>{CheckAndUpdate(callback);});
     }
 
-    void CheckAndUpdate(){
+    void CheckAndUpdate(Action callback = null){
         if(currentHealth <= 0){
+            callback?.Invoke();
             TriggerAnimationAndDropLoot();
             StartCoroutine(SpawnHealthBoostWithDelay());
             //Instantiate(healthBoostPrefab, transform.position, Quaternion.identity);
@@ -56,7 +60,7 @@ public class EnemyHealth : MonoBehaviour
     {
         GameObject itemToDrop = null;
 
-        switch (parent.tag)
+        switch (EnemyType)
         {
             case "Melee":
                 itemToDrop = resourcePrefab;
@@ -81,6 +85,8 @@ public class EnemyHealth : MonoBehaviour
 
     private IEnumerator TriggerAnimationAndDropLootCoroutine()
     {
+        GamePhaseManager manager = GamePhaseManager.instance;
+        manager.BackgroundAudioSource.PlayOneShot(manager.EnemyDieClip);
         animator.SetBool("IsDead", true);
         FreezeAndDecreaseHeight();
         script.enabled = false;
