@@ -25,6 +25,7 @@ public class GamePhaseManager : MonoBehaviour
     public AudioSource BGM;
     public Transform EndingPos;
     public GameObject FPSHandCam;
+    public GunSystem gunSystem;
 
     public EnemySpawnerWithIndividualRange enemySpawner;
 
