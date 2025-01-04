@@ -51,6 +51,9 @@ public class CacheSystem : MonoBehaviour
             callback?.Invoke();
             PlaySound();
 
+            // Destroy objects named HealthBoost(Clone)
+            DestroyHealthBoostObjects();
+
             // Start fade-out animation after resetting level
             FadeOut();
         });
@@ -73,6 +76,19 @@ public class CacheSystem : MonoBehaviour
             {
                 BlackScreen.gameObject.SetActive(false); // Disable BlackScreen after fading out
             });
+        }
+    }
+
+    private void DestroyHealthBoostObjects()
+    {
+        GameObject[] healthBoosts = GameObject.FindObjectsOfType<GameObject>();
+
+        foreach (GameObject obj in healthBoosts)
+        {
+            if (obj.name == "HealthBoost(Clone)")
+            {
+                Destroy(obj);
+            }
         }
     }
 
