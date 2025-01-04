@@ -23,15 +23,7 @@ public class HealthPickup : MonoBehaviour
 
     void Start()
     {
-        // Add a smooth bobbing animation using DOTween
-        transform.DOMoveY(transform.position.y + bobbingHeight, bobbingDuration)
-                 .SetLoops(-1, LoopType.Yoyo) // Loop the animation infinitely in a yoyo pattern
-                 .SetEase(Ease.InOutSine); // Use smooth in/out easing for natural movement
-
-        // Add a continuous rotation animation using DOTween
-        transform.DORotate(new Vector3(0, 360, 0), rotationSpeed, RotateMode.FastBeyond360)
-                 .SetLoops(-1, LoopType.Incremental) // Loop rotation indefinitely
-                 .SetEase(Ease.Linear); // Smooth and constant rotation
+    
     }
 
     void OnTriggerEnter(Collider other)
