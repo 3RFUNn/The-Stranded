@@ -4,15 +4,9 @@ using Gameplay.Interactions;
 using UnityEngine;
 using UnityEngine.SceneManagement;  // Add this for scene management
 
-public class CaveGate : Interactable
+public class CaveGate : MonoBehaviour
 {
     public string nextSceneName;  // The name of the scene to load
-
-    // Override the Interact method from the base class
-    public override void Interact()
-    {
-        SwitchScene();
-    }
 
     // This method switches to the next scene
     void SwitchScene()
@@ -26,4 +20,20 @@ public class CaveGate : Interactable
         SceneManager.LoadScene(nextSceneName);
         Time.timeScale = 1; 
     }
+
+
+    private string targetTag = "Player";
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Check if the entering GameObject has the specified tag
+        if (other.CompareTag(targetTag))
+        {
+            Debug.Log("Trigger detected with object tagged as: " + targetTag);
+            SwitchScene();
+            
+            // Perform your desired action here
+        }
+    }
+
 }

@@ -1,36 +1,61 @@
 using UnityEngine;
 using TMPro;
-//using EZCameraShake;
-
+using DG.Tweening;
+using Cinemachine;
+using Ink.Parsed;
+using System.Threading.Tasks;
 
 public class GunSystem : MonoBehaviour
 {
-    //Gun stats
-    public int damage;
+    // Gun stats
+    public int damage = 10;
     public float timeBetweenShooting, spread, range, reloadTime, timeBetweenShots;
     public int magazineSize, bulletsPerTap;
     public bool allowButtonHold;
     int bulletsLeft, bulletsShot;
 
+    //Ammo System
+    public int totalAmmo = 90; // Total ammo carried by the player
 
-    //bools 
+
+    // bools 
     bool shooting, readyToShoot, reloading;
 
-
-    //Reference
-    public Camera fpsCam;
+    // References
+    public Camera fpsCam; // Camera reference
     public Transform attackPoint;
+    public Transform gunTransform; // Reference to the gun model's Transform
     public RaycastHit rayHit;
     public LayerMask whatIsEnemy;
 
+    // Cinemachine
+    public CinemachineImpulseSource impulseSource; // Cinemachine Impulse Source
 
-    //Graphics
-    public GameObject bulletHoleGraphic;
-
+    // Graphics
+    public GameObject bulletHoleGraphicSand, bulletHoleGraphicBlood, bulletHoleGraphicMetal;
     public ParticleSystem muzzleFlash;
-    //public CameraShaker camShake; // To be done later
-    public float camShakeMagnitude, camShakeDuration;
     public TextMeshProUGUI text;
+
+    //kill counter 
+    public TextMeshProUGUI killCounterText;
+
+    // Recoil and animation settings
+    public float recoilDistance = 0.1f;
+    public float recoilDuration = 0.1f;
+    public float reloadTiltAngle = 20f;
+    public float reloadAnimationDuration = 0.5f;
+
+    // Sounds
+    public AudioSource audioSource;
+    public AudioClip gunShotSound;
+
+    public AudioClip emptyBulletsGunShotSound;
+    public AudioClip reloadSound;
+
+    //variable to track the kill counter
+    private int killCounter;
+
+    private bool canPlayEmptyBulletSound = true; 
 
 
     private void Awake()
@@ -38,94 +63,243 @@ public class GunSystem : MonoBehaviour
         bulletsLeft = magazineSize;
         readyToShoot = true;
     }
+
+    public void ResetGun(){
+        totalAmmo = 90;
+        bulletsLeft = magazineSize;
+        readyToShoot = true;
+    }
+
     private void Update()
     {
-        //MyInput();
-
-
-        //SetText
-        text.SetText(bulletsLeft + "/" + magazineSize);
+        // Update text
+        if (text != null)
+        {
+            if (bulletsLeft <= 5)
+            {
+                text.SetText($"<color=red>{bulletsLeft}<color=white>/{totalAmmo}");
+            }
+            else
+            {
+                text.SetText($"{bulletsLeft}/{totalAmmo}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Text is null");
+        }
     }
+
     public void MyInput()
     {
         if (allowButtonHold) shooting = Input.GetKey(KeyCode.Mouse0);
         else shooting = Input.GetKeyDown(KeyCode.Mouse0);
 
+        // Reload input
+        if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && !reloading)
+        {
+            Reload();
+        }
 
-        //if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && !reloading) Reload();
-
-
-        //Shoot
         if (readyToShoot && shooting && !reloading && bulletsLeft > 0)
         {
             bulletsShot = bulletsPerTap;
             Shoot();
+        } else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
         }
     }
+
     private void Shoot()
     {
         readyToShoot = false;
 
+        // Play recoil animation
+        PlayRecoilAnimation();
 
-        //Spread
+        // Play gunshot sound
+        PlayGunShotSound();
+
+        // Trigger camera shake
+        TriggerCameraShake();
+
+        // Spread
         float x = Random.Range(-spread, spread);
         float y = Random.Range(-spread, spread);
 
-
-        //Calculate Direction with Spread
+        // Calculate Direction with Spread
         Vector3 direction = fpsCam.transform.forward + new Vector3(x, y, 0);
 
-
-        //RayCast
+        // RayCast
         if (Physics.Raycast(fpsCam.transform.position, direction, out rayHit, range, whatIsEnemy))
         {
             Debug.Log(rayHit.collider.name);
 
-
             if (rayHit.collider.CompareTag("Enemy"))
             {
-                //rayHit.collider.GetComponent<ShootingAi>().TakeDamage(damage); // To be done later
-                GameObject obj = rayHit.collider.gameObject;
-                Destroy(obj);
-
+                EnemyHealth health = rayHit.collider.GetComponent<EnemyHealth>();
+                if (health != null)
+                {
+                    health.TakeDamage(damage, IncrementKillCounter);
+                }
+                else
+                {
+                    GameObject obj = rayHit.collider.gameObject;
+                    Destroy(obj);
+                    IncrementKillCounter();
+                }
+                GameObject bulletHole = Instantiate(bulletHoleGraphicBlood, rayHit.point, Quaternion.LookRotation(rayHit.normal));
+                bulletHole.transform.SetParent(rayHit.transform);
+            }
+            else
+            {
+                if (!rayHit.collider.CompareTag("InvisibleObject"))
+                {
+                    if (rayHit.collider.CompareTag("Sand"))
+                    {
+                        GameObject bulletHole = Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.LookRotation(rayHit.normal));
+                        bulletHole.transform.SetParent(rayHit.transform);
+                        // Instantiate(bulletHoleGraphicSand, rayHit.point, Quaternion.Euler(0, 180, 0));
+                    }
+                    else
+                    {
+                        GameObject bulletHole = Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.LookRotation(rayHit.normal));
+                        bulletHole.transform.SetParent(rayHit.transform);
+                        // Instantiate(bulletHoleGraphicMetal, rayHit.point, Quaternion.Euler(0, 180, 0));
+                    }
+                }
             }
         }
 
-
-        //ShakeCamera
-        //camShake.Shake(camShakeDuration, camShakeMagnitude); // To be done later
-
-
-        //Graphics
-        Instantiate(bulletHoleGraphic, rayHit.point, Quaternion.Euler(0, 180, 0));
+        // Muzzle flash
         muzzleFlash.Play();
-
 
         bulletsLeft--;
         bulletsShot--;
-
-
         Invoke("ResetShot", timeBetweenShooting);
 
-
-        if (bulletsShot > 0 && bulletsLeft > 0)
+        if (bulletsShot > 0 && bulletsLeft > 0){
             Invoke("Shoot", timeBetweenShots);
+        }else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
+        }
     }
+
+    private async void PlayEmptyBulletsSounds(){
+        if (audioSource != null && emptyBulletsGunShotSound != null)
+            {
+                canPlayEmptyBulletSound = false;
+                audioSource.PlayOneShot(emptyBulletsGunShotSound);
+                await Task.Delay(100);
+                canPlayEmptyBulletSound = true;
+
+            }
+    }
+
+    private void PlayRecoilAnimation()
+    {
+        if (gunTransform != null)
+        {
+            gunTransform
+                .DOLocalMoveZ(-recoilDistance, recoilDuration)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() =>
+                {
+                    gunTransform.DOLocalMoveZ(0, recoilDuration).SetEase(Ease.InQuad);
+                });
+        }
+    }
+
+    private void PlayGunShotSound()
+    {
+        if (audioSource != null && gunShotSound != null)
+        {
+            audioSource.PlayOneShot(gunShotSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or GunShotSound is not assigned!");
+        }
+    }
+
+    private void TriggerCameraShake()
+    {
+        if (impulseSource != null)
+        {
+            impulseSource.GenerateImpulse();
+        }
+        else
+        {
+            Debug.LogWarning("Cinemachine Impulse Source is not assigned!");
+        }
+    }
+
     private void ResetShot()
     {
         readyToShoot = true;
     }
+
     public void Reload()
     {
-
-        if(bulletsLeft < magazineSize && !reloading){
+        if (totalAmmo > 0 && bulletsLeft < magazineSize && !reloading)
+        {
             reloading = true;
+
+            PlayReloadSound();
+            PlayReloadAnimation();
+
             Invoke("ReloadFinished", reloadTime);
         }
     }
+
+    private void PlayReloadSound()
+    {
+        if (audioSource != null && reloadSound != null)
+        {
+            audioSource.PlayOneShot(reloadSound);
+        }
+        else
+        {
+            Debug.LogWarning("AudioSource or ReloadSound is not assigned!");
+        }
+    }
+
+    private void PlayReloadAnimation()
+    {
+        if (gunTransform != null)
+        {
+            gunTransform
+                .DOLocalRotate(new Vector3(-reloadTiltAngle, 0, 0), reloadAnimationDuration)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() =>
+                {
+                    gunTransform.DOLocalRotate(Vector3.zero, reloadAnimationDuration).SetEase(Ease.InQuad);
+                });
+        }
+    }
+
     private void ReloadFinished()
     {
-        bulletsLeft = magazineSize;
+        int bulletsToReload = magazineSize - bulletsLeft;
+        int bulletsAvailable = Mathf.Min(bulletsToReload, totalAmmo);
+
+        bulletsLeft += bulletsAvailable;
+        totalAmmo -= bulletsAvailable;
+
         reloading = false;
+    }
+
+    private void IncrementKillCounter()
+    {
+        killCounter++;
+        UpdateKillCounterUI();
+    }
+
+    private void UpdateKillCounterUI()
+    {
+        if (killCounterText != null)
+        {
+            killCounterText.SetText(killCounter.ToString());
+        }
     }
 }

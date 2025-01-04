@@ -4,6 +4,7 @@ using Gameplay.Interactions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -11,23 +12,21 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField]
     private Interactable interactable; // Reference to interactable object
     public PlayerInput PlayerInput;
-    public TextMeshProUGUI PromptText;
+    public TextMeshProUGUI promptText;
+    public RectTransform promptUI;
+    public Transform CameraTransform;
 
+    
     void Update()
     {
         CheckForInteractable();
-
-        // Check if the F key is pressed
-        //if (Input.GetKeyDown(KeyCode.F) && interactable != null)
-        //{
-        //    interactable.Interact();
-        //}
     }
 
     void CheckForInteractable()
     {
+        //print(Camera.main.transform.position);
         // Cast a ray from the player's position forward
-        Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
+        Ray ray = new Ray(CameraTransform.position, CameraTransform.forward);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit, interactDistance))
@@ -35,21 +34,28 @@ public class PlayerInteraction : MonoBehaviour
             // Check if the object hit has an Interactable component
             Interactable hitInteractable = hit.collider.GetComponent<Interactable>();
 
-            if (hitInteractable != null)
+            if (hitInteractable != null && hitInteractable.CanInteract)
             {
                 interactable = hitInteractable;
-                PromptText.text = interactable.PromptTextInUI;
+                promptText.text = interactable.PromptUIText;
+                //update the layout immediately to fit new text's length
+                LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
+                promptUI.gameObject.SetActive(true);
             }
             else
             {
                 interactable = null;
-                PromptText.text = null;
+                promptUI.gameObject.SetActive(false);
+                promptText.text = "";
+                LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
             }
         }
         else
         {
             interactable = null;
-            PromptText.text = null;
+            promptUI.gameObject.SetActive(false);
+            promptText.text = "";
+            LayoutRebuilder.ForceRebuildLayoutImmediate(promptUI);
         }
     }
 
@@ -61,11 +67,11 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     public void OnUIExit(InputAction.CallbackContext ctx){
-        if(ctx.started){
-            PromptText.enabled = true;
-            PlayerInput.SwitchCurrentActionMap("Player");
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-        }
+        //if(ctx.started){
+        //    promptText.enabled = true;
+        //    PlayerInput.SwitchCurrentActionMap("Player");
+        //    Cursor.visible = false;
+        //    Cursor.lockState = CursorLockMode.Locked;
+        //}
     }
 }
