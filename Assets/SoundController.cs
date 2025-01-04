@@ -4,11 +4,13 @@ using UnityEngine.UI;
 public class SoundController : MonoBehaviour
 {
     public Slider musicSlider;
+    public float lastSliderValue = 0.15f;
 
     void Start()
     {
 
-        musicSlider.value = 1f;
+        musicSlider.value = 0.15f;
+        SetActions();
     }
 
     void Update()
@@ -21,6 +23,31 @@ public class SoundController : MonoBehaviour
         if (Input.GetKey(KeyCode.LeftArrow))
         {
             AdjustSliderValue(-0.01f);
+        }
+
+        
+    }
+
+    
+    private void SetActions()
+    {
+        if (musicSlider == null || GamePhaseManager.instance == null || GamePhaseManager.instance.BackgroundAudioSource == null)
+        {
+            Debug.LogWarning("Music slider or audio source is not set up properly.");
+            return;
+        }
+
+        musicSlider.onValueChanged.AddListener(CheckAndSetVolume);
+    }
+
+    private void CheckAndSetVolume(float currentValue)
+    {
+   
+        if (Mathf.Abs(currentValue - lastSliderValue) > Mathf.Epsilon) // Use Epsilon for float comparison
+        {
+            GamePhaseManager.instance.BackgroundAudioSource.volume = currentValue;
+
+            lastSliderValue = currentValue;
         }
     }
 
