@@ -42,6 +42,7 @@ public class EnemyHealth : MonoBehaviour
 
     void CheckAndUpdate(Action callback = null){
         if(currentHealth <= 0){
+            healthBar.gameObject.SetActive(false);
             callback?.Invoke();
             TriggerAnimationAndDropLoot();
             StartCoroutine(SpawnHealthBoostWithDelay());

@@ -93,7 +93,14 @@ public class GamePhaseManager : MonoBehaviour
     private void PlayPostCutSceneBGM(){
         if (BackgroundAudioSource != null && BackgroundMusicClip != null)
         {
-            BackgroundAudioSource.PlayOneShot(BackgroundMusicClip);
+            // Set the clip to the audio source
+            BackgroundAudioSource.clip = BackgroundMusicClip;
+            
+            // Enable looping
+            BackgroundAudioSource.loop = true;
+            
+            // Play the audio
+            BackgroundAudioSource.Play();
         }
     }
 
