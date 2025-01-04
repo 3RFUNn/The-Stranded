@@ -78,6 +78,7 @@ public class PauseMenuController : MonoBehaviour
     void OpenSettings()
     {
         Debug.Log("Opening Settings");
+
     }
 
     void SelectNextButton()
@@ -101,10 +102,10 @@ public class PauseMenuController : MonoBehaviour
             currentSelectedButton = restartButton;
         else if (currentSelectedButton == restartButton)
             currentSelectedButton = settingsButton;
+
         UpdateButtonVisuals();
         EventSystem.current.SetSelectedGameObject(currentSelectedButton.gameObject);
     }
-
 
     void UpdateButtonVisuals()
     {
