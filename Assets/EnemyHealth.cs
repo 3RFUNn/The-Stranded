@@ -87,6 +87,7 @@ public class EnemyHealth : MonoBehaviour
     private IEnumerator TriggerAnimationAndDropLootCoroutine()
     {
         GamePhaseManager manager = GamePhaseManager.instance;
+        DisableColliders();
         manager.BackgroundAudioSource.PlayOneShot(manager.EnemyDieClip);
         animator.SetBool("IsDead", true);
         FreezeAndDecreaseHeight();
@@ -105,6 +106,26 @@ public class EnemyHealth : MonoBehaviour
         Vector3 newPosition = parent.transform.position;
         newPosition.y -= 1;
         parent.transform.position = newPosition;
+    }
+
+    private void DisableColliders()
+    {
+        // Disable collider on the current game object
+        Collider currentCollider = GetComponent<Collider>();
+        if (currentCollider != null)
+        {
+            currentCollider.enabled = false;
+        }
+
+        // Disable collider on the parent object
+        if (parent != null)
+        {
+            Collider parentCollider = parent.GetComponent<Collider>();
+            if (parentCollider != null)
+            {
+                parentCollider.enabled = false;
+            }
+        }
     }
 
 }

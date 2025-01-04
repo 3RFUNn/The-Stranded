@@ -64,6 +64,12 @@ public class GunSystem : MonoBehaviour
         readyToShoot = true;
     }
 
+    public void ResetGun(){
+        totalAmmo = 90;
+        bulletsLeft = magazineSize;
+        readyToShoot = true;
+    }
+
     private void Update()
     {
         // Update text

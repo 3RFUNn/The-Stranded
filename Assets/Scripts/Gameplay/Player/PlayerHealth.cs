@@ -14,6 +14,8 @@ public class PlayerHealth : MonoBehaviour
 
     public GameObject youDied;
 
+    public CacheSystem cacheSystem;
+
     [SerializeField] private TextMeshProUGUI currentHealthText;
 
     // Start is called before the first frame update
@@ -45,9 +47,15 @@ public class PlayerHealth : MonoBehaviour
         int updatedValue = Math.Clamp(currentHealth, 0, 100);
         currentHealthText.text = updatedValue.ToString();
         if (currentHealth <= 0 ){
-            youDied.SetActive(true);
+            // youDied.SetActive(true);
+            cacheSystem.ResetLevel(AppHelper.CurrentLevel, ResetHealth);
             Debug.Log("You Died!");
         }
+    }
+
+    private void ResetHealth(){
+        currentHealth = 100;
+        healthBar.SetHealth(currentHealth, CheckAndUpdate);
     }
 
 }
