@@ -26,6 +26,8 @@ public class GamePhaseManager : MonoBehaviour
     public Transform EndingPos;
     public GameObject FPSHandCam;
 
+    public EnemySpawnerWithIndividualRange enemySpawner;
+
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;
     public bool EnableEnemy;
@@ -76,6 +78,7 @@ public class GamePhaseManager : MonoBehaviour
             HideAndLockCursor();
             HUD.SetActive(true);
             PlayPostCutSceneBGM();
+            enemySpawner.InitiateEnemies();
         }
 
         if (StartWithTablet){
