@@ -8,10 +8,8 @@ public class HealthBar : MonoBehaviour
     public Slider slider;
     public Image bar;
 
-    public void SetHealth( int health, System.Action callback = null)
+    public void SetHealth(int health, System.Action callback = null)
     {
-
-
         slider.value = health;
         if(health <= 30){
             bar.color = Color.red;
@@ -27,6 +25,5 @@ public class HealthBar : MonoBehaviour
             bar.color = Color.green;
         }
         callback?.Invoke();
-
     }
 }

@@ -25,6 +25,9 @@ public class GamePhaseManager : MonoBehaviour
     public AudioSource BGM;
     public Transform EndingPos;
     public GameObject FPSHandCam;
+    public GunSystem gunSystem;
+
+    public EnemySpawnerWithIndividualRange enemySpawner;
 
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;
@@ -33,6 +36,12 @@ public class GamePhaseManager : MonoBehaviour
     public bool StartWithFullFuel = false;
 
     public AudioSource GenericAudioSource;
+
+    public AudioSource BackgroundAudioSource;
+
+    public AudioClip BackgroundMusicClip;
+
+    public AudioClip EnemyDieClip;
 
     public GameObject FloaterText;
 
@@ -69,6 +78,8 @@ public class GamePhaseManager : MonoBehaviour
             MainMenu.SetActive(false);
             HideAndLockCursor();
             HUD.SetActive(true);
+            PlayPostCutSceneBGM();
+            enemySpawner.InitiateEnemies();
         }
 
         if (StartWithTablet){
@@ -81,6 +92,20 @@ public class GamePhaseManager : MonoBehaviour
         }
 
         EnemySpawner.enabled = EnableEnemy ? true : false;
+    }
+
+    private void PlayPostCutSceneBGM(){
+        if (BackgroundAudioSource != null && BackgroundMusicClip != null)
+        {
+            // Set the clip to the audio source
+            BackgroundAudioSource.clip = BackgroundMusicClip;
+            
+            // Enable looping
+            BackgroundAudioSource.loop = true;
+            
+            // Play the audio
+            BackgroundAudioSource.Play();
+        }
     }
 
     //this is called when start button in main menu is clicked
@@ -176,6 +201,7 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
+            PlayPostCutSceneBGM();
         }
     }
 
