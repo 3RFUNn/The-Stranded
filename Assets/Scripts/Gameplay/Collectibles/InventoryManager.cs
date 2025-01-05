@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using TMPro;
 
 public class InventoryManager : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class InventoryManager : MonoBehaviour
     public GameObject inventoryUI;
 
     public Text healthText;
+
+    public Text magazineCounter;
 
     private int bullets = 0;
     private int health = 0;
@@ -115,6 +118,7 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdateUI()
     {
+        magazineCounter.text = bullets.ToString();
         healthText.text = health.ToString();
     }
 

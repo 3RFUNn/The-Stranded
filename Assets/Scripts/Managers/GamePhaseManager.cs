@@ -18,7 +18,6 @@ public class GamePhaseManager : MonoBehaviour
     public GameObject Player;
     public GameObject HUD, MainMenu, PauseMenu;
     public PlayerInput Input;
-    public EnemySpawner EnemySpawner;
     public PlayerTablet PlayerTablet = null;
     public PlayableDirector Director;
     public CinemachineBrain CineBrain;
@@ -56,6 +55,8 @@ public class GamePhaseManager : MonoBehaviour
     private GameObject _currentUI;
 
     public FuelCounter fuelCounter;
+
+    public EnergyCharger EnergyCharger;
 
 
     private void Awake() {
@@ -102,10 +103,8 @@ public class GamePhaseManager : MonoBehaviour
         }
 
         if (StartWithFullFuel){
-            GameObject.Find("EnergyCharger").GetComponent<EnergyCharger>().EnergyInventory = 100;
+           EnergyCharger.EnergyInventory = 100;
         }
-
-        EnemySpawner.enabled = EnableEnemy ? true : false;
     }
 
     private void PlayPostCutSceneBGM(){
