@@ -40,7 +40,7 @@ public class MeleeEnemy : BaseEnemy
         UpdateAnimationState(false, false, true, false);
 
         // Play movement sounds
-        if (movementSounds.Length > 0 && Time.time % 1.5 < 0.1f)
+        if (movementSounds.Length > 0 && Time.time % 3 < 0.1f)
         {
             PlayRandomSound(movementSounds);
         }
@@ -99,7 +99,7 @@ public class MeleeEnemy : BaseEnemy
         // Play attack sound
         if (attackSounds.Length > 0)
         {
-            PlayRandomSound(attackSounds, canPlay: true);
+            PlayRandomSound(attackSounds);
         }
 
         // Get reference to player health if we don't have it

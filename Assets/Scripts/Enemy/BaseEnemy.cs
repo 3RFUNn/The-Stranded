@@ -672,12 +672,9 @@ public abstract class BaseEnemy : MonoBehaviour
 
     #region Utility Functions
 
-    protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f, bool canPlay = false)
+    protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f)
     {
-        bool checkAudioPlaying = canPlay? false : audioSource.isPlaying;
-
-
-        if (sounds.Length > 0 && audioSource != null && !checkAudioPlaying)
+        if (sounds.Length > 0 && audioSource != null && !audioSource.isPlaying)
         {
             AudioClip randomSound = sounds[Random.Range(0, sounds.Length)];
             audioSource.volume = volumeMultiplier;

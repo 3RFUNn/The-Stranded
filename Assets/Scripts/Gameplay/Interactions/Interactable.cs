@@ -18,12 +18,12 @@ namespace Gameplay.Interactions
         }
 
         public void PlaySound()
+    {
+        audioSource = GamePhaseManager.instance.GenericAudioSource;
+        if (audioSource != null && audioClip != null)
         {
-            audioSource = GamePhaseManager.instance.GenericAudioSource;
-            if (audioSource != null && audioClip != null)
-            {
-                audioSource.PlayOneShot(audioClip);
-            }
+            audioSource.PlayOneShot(audioClip);
         }
+    }
     }
 }
