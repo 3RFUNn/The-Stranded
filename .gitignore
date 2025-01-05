@@ -74,3 +74,4 @@ crashlytics-build.properties
 # Personal Scene 
 /Assets/Scenes/Ming.unity
 /Assets/Scenes/Ming.unity.meta
+ProjectSettings/Packages/com.unity.probuilder/Settings.json

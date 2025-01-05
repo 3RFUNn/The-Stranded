@@ -68,6 +68,7 @@ public class GunSystem : MonoBehaviour
         totalAmmo = 90;
         bulletsLeft = magazineSize;
         readyToShoot = true;
+        PlayReloadSound();
     }
 
     private void Update()

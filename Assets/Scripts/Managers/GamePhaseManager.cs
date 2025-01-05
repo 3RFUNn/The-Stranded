@@ -25,6 +25,7 @@ public class GamePhaseManager : MonoBehaviour
     public AudioSource BGM;
     public Transform EndingPos;
     public GameObject FPSHandCam;
+    public GunSystem gunSystem;
 
     public EnemySpawnerWithIndividualRange enemySpawner;
 
@@ -47,6 +48,8 @@ public class GamePhaseManager : MonoBehaviour
     public Transform FloaterMessageSpawnPoint;
 
     private GameObject _currentUI;
+
+    public FuelCounter fuelCounter;
 
 
     private void Awake() {
