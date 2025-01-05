@@ -11,6 +11,8 @@ using UnityEngine.Playables;
 public class GamePhaseManager : MonoBehaviour
 {
     public static GamePhaseManager instance;
+    
+    public Difficulty difficultyManager;
 
     public Animator IntroCameraAnimator;
     public GameObject Player;
@@ -25,6 +27,11 @@ public class GamePhaseManager : MonoBehaviour
     public AudioSource BGM;
     public Transform EndingPos;
     public GameObject FPSHandCam;
+    public GunSystem gunSystem;
+
+    public EnemySpawnerWithIndividualRange enemySpawner;
+    
+    public int difficulty = 0;
 
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;
@@ -34,11 +41,19 @@ public class GamePhaseManager : MonoBehaviour
 
     public AudioSource GenericAudioSource;
 
+    public AudioSource BackgroundAudioSource;
+
+    public AudioClip BackgroundMusicClip;
+
+    public AudioClip EnemyDieClip;
+
     public GameObject FloaterText;
 
     public Transform FloaterMessageSpawnPoint;
 
     private GameObject _currentUI;
+
+    public FuelCounter fuelCounter;
 
 
     private void Awake() {
@@ -70,6 +85,9 @@ public class GamePhaseManager : MonoBehaviour
             MainMenu.SetActive(false);
             HideAndLockCursor();
             HUD.SetActive(true);
+            PlayPostCutSceneBGM();
+            enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
         }
 
         if (StartWithTablet){
@@ -82,6 +100,20 @@ public class GamePhaseManager : MonoBehaviour
         }
 
         EnemySpawner.enabled = EnableEnemy ? true : false;
+    }
+
+    private void PlayPostCutSceneBGM(){
+        if (BackgroundAudioSource != null && BackgroundMusicClip != null)
+        {
+            // Set the clip to the audio source
+            BackgroundAudioSource.clip = BackgroundMusicClip;
+            
+            // Enable looping
+            BackgroundAudioSource.loop = true;
+            
+            // Play the audio
+            BackgroundAudioSource.Play();
+        }
     }
 
     //this is called when start button in main menu is clicked
@@ -177,6 +209,7 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
+            PlayPostCutSceneBGM();
         }
     }
 
@@ -185,4 +218,23 @@ public class GamePhaseManager : MonoBehaviour
         Player.transform.position = EndingPos.position;
         Player.transform.LookAt(EndingPos.position + EndingPos.right);
     }
+    
+    
+    private void ApplySavedDifficulty()
+    {
+        int savedDifficulty = PlayerPrefs.GetInt("Difficulty", 0); // Default to easy if not set
+        switch (savedDifficulty)
+        {
+            case 0:
+                difficultyManager.ApplyEasySettings();
+                break;
+            case 1:
+                difficultyManager.ApplyMediumSettings();
+                break;
+            case 2:
+                difficultyManager.ApplyHardSettings();
+                break;
+        }
+    }
+    
 }

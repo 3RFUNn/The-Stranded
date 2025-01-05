@@ -16,6 +16,10 @@ public static class AppHelper
 
     public static bool hasKey = false;
 
+    public static int PlayerHealth = 100;
+
+    public static int CurrentLevel = 1;
+
     // Example of a method to reset the data
     public static void ResetData()
     {

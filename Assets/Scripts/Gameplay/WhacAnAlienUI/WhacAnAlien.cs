@@ -53,6 +53,7 @@ public class WhacAnAlien : Interactable
         // show cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        PlaySound();
     }
 
     public void OnAlienReachedBottom(){

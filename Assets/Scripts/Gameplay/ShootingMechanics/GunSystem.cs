@@ -2,6 +2,8 @@ using UnityEngine;
 using TMPro;
 using DG.Tweening;
 using Cinemachine;
+using Ink.Parsed;
+using System.Threading.Tasks;
 
 public class GunSystem : MonoBehaviour
 {
@@ -11,6 +13,10 @@ public class GunSystem : MonoBehaviour
     public int magazineSize, bulletsPerTap;
     public bool allowButtonHold;
     int bulletsLeft, bulletsShot;
+
+    //Ammo System
+    public int totalAmmo = 50; // Total ammo carried by the player
+
 
     // bools 
     bool shooting, readyToShoot, reloading;
@@ -30,6 +36,9 @@ public class GunSystem : MonoBehaviour
     public ParticleSystem muzzleFlash;
     public TextMeshProUGUI text;
 
+    //kill counter 
+    public TextMeshProUGUI killCounterText;
+
     // Recoil and animation settings
     public float recoilDistance = 0.1f;
     public float recoilDuration = 0.1f;
@@ -39,7 +48,15 @@ public class GunSystem : MonoBehaviour
     // Sounds
     public AudioSource audioSource;
     public AudioClip gunShotSound;
+
+    public AudioClip emptyBulletsGunShotSound;
     public AudioClip reloadSound;
+
+    //variable to track the kill counter
+    private int killCounter;
+
+    private bool canPlayEmptyBulletSound = true; 
+
 
     private void Awake()
     {
@@ -47,12 +64,26 @@ public class GunSystem : MonoBehaviour
         readyToShoot = true;
     }
 
+    public void ResetGun(){
+        totalAmmo = 90;
+        bulletsLeft = magazineSize;
+        readyToShoot = true;
+        PlayReloadSound();
+    }
+
     private void Update()
     {
         // Update text
         if (text != null)
         {
-            text.SetText(bulletsLeft + "/" + magazineSize);
+            if (bulletsLeft <= 5)
+            {
+                text.SetText($"<color=red>{bulletsLeft}<color=white>/{totalAmmo}");
+            }
+            else
+            {
+                text.SetText($"{bulletsLeft}/{totalAmmo}");
+            }
         }
         else
         {
@@ -75,6 +106,8 @@ public class GunSystem : MonoBehaviour
         {
             bulletsShot = bulletsPerTap;
             Shoot();
+        } else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
         }
     }
 
@@ -108,12 +141,13 @@ public class GunSystem : MonoBehaviour
                 EnemyHealth health = rayHit.collider.GetComponent<EnemyHealth>();
                 if (health != null)
                 {
-                    health.TakeDamage(damage);
+                    health.TakeDamage(damage, IncrementKillCounter);
                 }
                 else
                 {
                     GameObject obj = rayHit.collider.gameObject;
                     Destroy(obj);
+                    IncrementKillCounter();
                 }
                 GameObject bulletHole = Instantiate(bulletHoleGraphicBlood, rayHit.point, Quaternion.LookRotation(rayHit.normal));
                 bulletHole.transform.SetParent(rayHit.transform);
@@ -145,8 +179,22 @@ public class GunSystem : MonoBehaviour
         bulletsShot--;
         Invoke("ResetShot", timeBetweenShooting);
 
-        if (bulletsShot > 0 && bulletsLeft > 0)
+        if (bulletsShot > 0 && bulletsLeft > 0){
             Invoke("Shoot", timeBetweenShots);
+        }else if(bulletsLeft <= 0 && !reloading && canPlayEmptyBulletSound){
+            PlayEmptyBulletsSounds();
+        }
+    }
+
+    private async void PlayEmptyBulletsSounds(){
+        if (audioSource != null && emptyBulletsGunShotSound != null)
+            {
+                canPlayEmptyBulletSound = false;
+                audioSource.PlayOneShot(emptyBulletsGunShotSound);
+                await Task.Delay(100);
+                canPlayEmptyBulletSound = true;
+
+            }
     }
 
     private void PlayRecoilAnimation()
@@ -194,14 +242,11 @@ public class GunSystem : MonoBehaviour
 
     public void Reload()
     {
-        if (bulletsLeft < magazineSize && !reloading)
+        if (totalAmmo > 0 && bulletsLeft < magazineSize && !reloading)
         {
             reloading = true;
 
-            // Play reload sound
             PlayReloadSound();
-
-            // Play reload animation
             PlayReloadAnimation();
 
             Invoke("ReloadFinished", reloadTime);
@@ -236,7 +281,26 @@ public class GunSystem : MonoBehaviour
 
     private void ReloadFinished()
     {
-        bulletsLeft = magazineSize;
+        int bulletsToReload = magazineSize - bulletsLeft;
+        int bulletsAvailable = Mathf.Min(bulletsToReload, totalAmmo);
+
+        bulletsLeft += bulletsAvailable;
+        totalAmmo -= bulletsAvailable;
+
         reloading = false;
+    }
+
+    private void IncrementKillCounter()
+    {
+        killCounter++;
+        UpdateKillCounterUI();
+    }
+
+    private void UpdateKillCounterUI()
+    {
+        if (killCounterText != null)
+        {
+            killCounterText.SetText(killCounter.ToString());
+        }
     }
 }

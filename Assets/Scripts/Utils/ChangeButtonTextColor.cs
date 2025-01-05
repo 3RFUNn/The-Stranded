@@ -1,21 +1,35 @@
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class ChangeButtonTextColor : MonoBehaviour
+public class ChangeButtonTextColor : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    public Color HoveringColor, NormalColor;
-    public TextMeshProUGUI TMP;
+    public Text Text;
 
     private void Start() {
-        TMP = GetComponent<TextMeshProUGUI>();
-    }
-    public void OnMouseEnter() {
-        TMP.color = HoveringColor;
+        if (Text == null) {
+            Text = GetComponent<Text>();
+            if (Text == null) {
+                Debug.LogError("Text component not found on GameObject: " + gameObject.name);
+            }
+        }
     }
 
-    public void OnMouseLeave() { 
-        TMP.color = NormalColor;
+    public void OnPointerEnter(PointerEventData eventData) {
+        if (Text != null) {
+            Text.color = Color.cyan;
+        } else {
+            Debug.LogError("Text component is null in OnPointerEnter on GameObject: " + gameObject.name);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData) {
+        if (Text != null) {
+            Text.color = Color.white;
+        } else {
+            Debug.LogError("Text component is null in OnPointerExit on GameObject: " + gameObject.name);
+        }
     }
 }

@@ -64,6 +64,13 @@ public abstract class BaseEnemy : MonoBehaviour
     protected bool hasSpottedPlayer = false;
     protected bool isMoving = false;
 
+
+    public int attackDamage1
+    {
+        get => attackDamage;
+        set => attackDamage = value;
+    }
+
     #region Initialization
 
     protected virtual void Start()
@@ -672,9 +679,12 @@ public abstract class BaseEnemy : MonoBehaviour
 
     #region Utility Functions
 
-    protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f)
+    protected virtual void PlayRandomSound(AudioClip[] sounds, float volumeMultiplier = 1f, bool canPlay = false)
     {
-        if (sounds.Length > 0 && audioSource != null && !audioSource.isPlaying)
+        bool checkAudioPlaying = canPlay? false : audioSource.isPlaying;
+
+
+        if (sounds.Length > 0 && audioSource != null && !checkAudioPlaying)
         {
             AudioClip randomSound = sounds[Random.Range(0, sounds.Length)];
             audioSource.volume = volumeMultiplier;
