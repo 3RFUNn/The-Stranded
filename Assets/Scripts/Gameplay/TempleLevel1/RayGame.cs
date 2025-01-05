@@ -43,12 +43,13 @@ public class RayGame : MonoBehaviour
         // Change the colors only on a successful hit
         if (gemHitSuccessfully) {
             ChangeGemColor(Color.green); // Change gem color to green
-            ChangeLineRendererColor(Color.yellow); // Change LineRenderer color to gold/yellow
-        } else {
-            // Revert the colors to their original states
-            ChangeGemColor(originalGemColor);
-            ChangeLineRendererColor(originalLineColor);
-        }
+            ChangeLineRendererColor(Color.green); // Change LineRenderer color to gold/yellow
+        } 
+        //else {
+        //    // Revert the colors to their original states
+        //    ChangeGemColor(originalGemColor);
+        //    ChangeLineRendererColor(originalLineColor);
+        //}
     }
 
     private bool CastRay(Vector3 rayPos, Vector3 rayDir) {

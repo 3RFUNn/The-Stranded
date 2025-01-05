@@ -26,6 +26,7 @@ public class AlienMove : MonoBehaviour
     public void MoveUp(){
         transform.DOLocalMoveY(Top.localPosition.y, game.MoveDuration);
         Pillar.MoveUp(game.MoveDuration);
+        game.OnCountdownOver -= MoveUp;
     }
 
     public void MoveDown(){
