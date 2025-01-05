@@ -28,6 +28,8 @@ public class GamePhaseManager : MonoBehaviour
     public Transform EndingPos;
     public GameObject FPSHandCam;
     public GunSystem gunSystem;
+    
+    public InventoryManager inventoryManager;
 
     public EnemySpawnerWithIndividualRange enemySpawner;
     
@@ -58,6 +60,8 @@ public class GamePhaseManager : MonoBehaviour
 
     private void Awake() {
         instance = this;
+        inventoryManager = InventoryManager.instance;
+        
     }
 
     void Start()
@@ -80,6 +84,8 @@ public class GamePhaseManager : MonoBehaviour
             CutSceneGO.SetActive(true);
             //play audiosource on main camera
             BGM.Play();
+            enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
         } else{
             //hide main menu and directly start game
             MainMenu.SetActive(false);
@@ -137,6 +143,8 @@ public class GamePhaseManager : MonoBehaviour
     public void AfterIntro(){
         //show fps camera  
         FpsVCam.Priority = 13;
+        
+        inventoryManager.isMainMenu = false;
 
         //show HUD and enable input
         SwitchCutscene(false);
@@ -209,6 +217,8 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
+            enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
             PlayPostCutSceneBGM();
         }
     }

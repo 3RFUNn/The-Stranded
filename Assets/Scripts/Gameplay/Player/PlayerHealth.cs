@@ -7,7 +7,7 @@ using UnityEngine.UI;
 using Unity.VisualScripting;
 public class PlayerHealth : MonoBehaviour
 {
-
+    public static PlayerHealth instance;
     public int maxHealth = 100;
     public int currentHealth;
     public HealthBar healthBar;
@@ -40,6 +40,10 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("Healed!");
         currentHealth = currentHealth + healthBonus;
+        if (currentHealth > 100)
+        {
+            currentHealth = 100;
+        }
         healthBar.SetHealth(currentHealth, CheckAndUpdate);
     }
 

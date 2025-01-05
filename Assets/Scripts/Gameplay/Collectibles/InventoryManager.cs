@@ -1,56 +1,137 @@
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class InventoryManager : MonoBehaviour
 {
-    // Dictionary to track collected items and their counts
-    private Dictionary<string, int> inventory = new Dictionary<string, int>();
-    [SerializeField] private TextMeshProUGUI inventoryText; // To display item counts on the UI
+    public static InventoryManager instance;
+
+    public GameObject inventoryUI;
+
+    public Text healthText;
+
+    private int bullets = 0;
+    private int health = 0;
+    private bool isInventoryOpen = false;
+    public bool isMainMenu = true;
+
+    public GunSystem bullet;
+    public PlayerHealth _playerHealth;
     
-    
-    void Start()
+    public GamePhaseManager _gamePhaseManager;
+
+    private void Awake()
     {
-        // Initialize the inventory with items set to 0
-        inventory["Wood"] = 0;
-        inventory["Stone"] = 0;
-        UpdateInventoryUI();
+        instance = this;
+        _playerHealth = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerHealth>();
+        bullet = _gamePhaseManager.gunSystem;
+        
+
+    }
+    
+    
+    
+    
+
+    private void Start()
+    {
+        UpdateUI();
     }
 
-    // Function to collect items
-    public void CollectItem(string itemName)
+    private void Update()
     {
-        if (inventory.ContainsKey(itemName))
+        if (Keyboard.current.iKey.wasPressedThisFrame && !isMainMenu)
         {
-            inventory[itemName]++;
-            UpdateInventoryUI();
+            ToggleInventory();
+        }
+
+        if (isInventoryOpen)
+        {
+            if (Keyboard.current.digit1Key.wasPressedThisFrame)
+            {
+                Debug.Log("bullet");
+                UseBullet();
+            }
+            else if (Keyboard.current.digit2Key.wasPressedThisFrame)
+            {
+                Debug.Log("health");
+                UseHealth();
+            }
         }
     }
 
-    // Update the UI to reflect current item counts
-    void UpdateInventoryUI()
+    public void ToggleInventory()
     {
-        inventoryText.text = $"Wood: {inventory["Wood"]} | Stone: {inventory["Stone"]}";
-    }
+        isInventoryOpen = !isInventoryOpen;
+        inventoryUI.SetActive(isInventoryOpen);
 
-    // Function to craft an item (e.g., sword) if enough resources are available
-    public void CraftItem()
-    {
-        if (inventory["Wood"] >= 1 && inventory["Stone"] >= 1) // Example requirement
+        if (isInventoryOpen)
         {
-            // Deduct required materials
-            inventory["Wood"] -= 1;
-            inventory["Stone"] -= 1;
-            UpdateInventoryUI();
-            Debug.Log("Crafted an Item!");
             
+            ShowAndUnLockCursor();
         }
         else
         {
-            Debug.Log("Not enough resources to craft!");
             
+            HideAndLockCursor();
         }
+    }
+
+    public void AddBullets()
+    {
+        bullets += 1;
+        UpdateUI();
+    }
+
+    public void AddHealth()
+    {
+        health += 1;
+        UpdateUI();
+    }
+
+    public void UseBullet()
+    {
+        if (bullets > 0)
+        {
+            bullets--;
+
+            bullet.AddAmmo(20);
+
+            UpdateUI();
+        }
+    }
+
+    public void UseHealth()
+    {
+        if (health > 0 && _playerHealth.CurrentHealth < 100)
+        {
+            health--;
+
+            _playerHealth.IncreaseHealth(10);
+
+            UpdateUI();
+        }
+    }
+
+    private void UpdateUI()
+    {
+        healthText.text = health.ToString();
+    }
+
+    public void SetMainMenu(bool isMainMenu)
+    {
+        this.isMainMenu = isMainMenu;
+    }
+
+    public void HideAndLockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    public void ShowAndUnLockCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

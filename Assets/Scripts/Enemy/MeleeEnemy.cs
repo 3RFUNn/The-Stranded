@@ -129,3 +129,7 @@ public class MeleeEnemy : BaseEnemy
         Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }
+
+public class MeleeEnemyImpl : MeleeEnemy
+{
+}
