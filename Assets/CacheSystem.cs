@@ -52,7 +52,7 @@ public class CacheSystem : MonoBehaviour
             PlaySound();
 
             // Destroy objects named HealthBoost(Clone)
-            DestroyHealthBoostObjects();
+            DestroyObjects();
 
             // Start fade-out animation after resetting level
             FadeOut();
@@ -79,17 +79,18 @@ public class CacheSystem : MonoBehaviour
         }
     }
 
-    private void DestroyHealthBoostObjects()
+    private void DestroyObjects()
     {
-        GameObject[] healthBoosts = GameObject.FindObjectsOfType<GameObject>();
+        GameObject[] Objects = GameObject.FindObjectsOfType<GameObject>();
 
-        foreach (GameObject obj in healthBoosts)
+        foreach (GameObject obj in Objects)
         {
-            if (obj.name == "HealthBoost(Clone)")
+            if (obj.name == "HealthBoost(Clone)"  || obj.name == "CollectableAmmos(Clone)")
             {
                 Destroy(obj);
             }
         }
+
     }
 
     private void PlaySound()

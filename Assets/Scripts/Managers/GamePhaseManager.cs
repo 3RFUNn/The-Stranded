@@ -49,6 +49,8 @@ public class GamePhaseManager : MonoBehaviour
 
     private GameObject _currentUI;
 
+    public FuelCounter fuelCounter;
+
 
     private void Awake() {
         instance = this;

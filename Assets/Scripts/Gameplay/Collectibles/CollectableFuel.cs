@@ -17,6 +17,11 @@ public class CollectableFuel : ItemCollectible
         EnergyCharger.EnergyInventory += EnergyValue;
         PlaySound();
         ShowFloaterMessage();
+        UpdateFuel();
         Destroy(gameObject);
+    }
+
+    private void UpdateFuel(){
+        GamePhaseManager.instance.fuelCounter.UpdateFuel();
     }
 }
