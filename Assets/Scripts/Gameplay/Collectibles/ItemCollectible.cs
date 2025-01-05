@@ -21,7 +21,7 @@ public class ItemCollectible : Interactable
             
         if (inventory != null)
         {
-            inventory.CollectItem(itemName);
+            
             PlaySound();
             Debug.Log(itemName + " collected");
             ShowFloaterMessage();

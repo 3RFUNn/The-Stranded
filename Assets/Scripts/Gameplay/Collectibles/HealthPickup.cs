@@ -15,10 +15,13 @@ public class HealthPickup : MonoBehaviour
     public AudioSource audioSource; // The audio source component
     public AudioClip audioClip; // The sound to play on pickup
 
+    public InventoryManager Manager;
+
     void Awake()
     {
         // Find the player and get the PlayerHealth component
         playerHealth = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerHealth>();
+        Manager = InventoryManager.instance;
     }
 
     void Start()
@@ -31,9 +34,7 @@ public class HealthPickup : MonoBehaviour
         // Check if the colliding object is the player
         if (other.CompareTag("Player"))
         {
-            // Ensure the player's health isn't already full
-            if (playerHealth.currentHealth < playerHealth.maxHealth)
-            {
+           
                 // Play the pickup sound effect
                 if (audioSource != null && audioClip != null)
                 {
@@ -43,12 +44,14 @@ public class HealthPickup : MonoBehaviour
                 // Hide the health pickup object and clean up
                 gameObject.SetActive(false);
                 Debug.Log("Health boost picked up!");
-                playerHealth.IncreaseHealth(healthBonus);
-                Debug.Log("Current health: " + playerHealth.currentHealth);
+                //playerHealth.IncreaseHealth(healthBonus);
+                
+                Manager.AddHealth();
+                
 
                 // Destroy the object after a short delay (to ensure audio finishes playing)
                 Destroy(gameObject, 0.5f);
-            }
+            
         }
     }
 }

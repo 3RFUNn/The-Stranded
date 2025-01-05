@@ -14,6 +14,8 @@ public class GunSystem : MonoBehaviour
     public bool allowButtonHold;
     int bulletsLeft, bulletsShot;
 
+    public static GunSystem instance;
+
     //Ammo System
     public int totalAmmo = 50; // Total ammo carried by the player
 
@@ -55,13 +57,16 @@ public class GunSystem : MonoBehaviour
     //variable to track the kill counter
     private int killCounter;
 
-    private bool canPlayEmptyBulletSound = true; 
+    private bool canPlayEmptyBulletSound = true;
+
+    
 
 
     private void Awake()
     {
         bulletsLeft = magazineSize;
         readyToShoot = true;
+        
     }
 
     public void ResetGun(){
@@ -188,13 +193,12 @@ public class GunSystem : MonoBehaviour
 
     private async void PlayEmptyBulletsSounds(){
         if (audioSource != null && emptyBulletsGunShotSound != null)
-            {
-                canPlayEmptyBulletSound = false;
-                audioSource.PlayOneShot(emptyBulletsGunShotSound);
-                await Task.Delay(100);
-                canPlayEmptyBulletSound = true;
-
-            }
+        {
+            canPlayEmptyBulletSound = false;
+            audioSource.PlayOneShot(emptyBulletsGunShotSound);
+            await Task.Delay(100);
+            canPlayEmptyBulletSound = true;
+        }
     }
 
     private void PlayRecoilAnimation()
