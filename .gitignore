@@ -75,3 +75,6 @@ crashlytics-build.properties
 /Assets/Scenes/Ming.unity
 /Assets/Scenes/Ming.unity.meta
 ProjectSettings/Packages/com.unity.probuilder/Settings.json
+/Assets/_Creepy_Cat
+Assets/Models2/Alien/Alien.fbx
+Assets/Models2/Alien/Alien.fbx.meta

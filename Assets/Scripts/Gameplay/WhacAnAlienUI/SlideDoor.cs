@@ -5,14 +5,18 @@ using UnityEngine;
 
 public class SlideDoor : MonoBehaviour
 {
-    public float MoveDistance;
     public float MoveDuration;
+    public Transform Dest, Origin;
+    //private Vector3 _origin;
+
+    private void Start() {
+    }
     public void Open() {
-        transform.DOMoveX(transform.position.x + MoveDistance, MoveDuration)
+        transform.DOMove(Dest.position, MoveDuration)
             .SetUpdate(true);
     }
 
     public void Close() {
-        transform.DOMoveX(transform.position.x - MoveDistance, MoveDuration);
+        transform.DOMove(Origin.position, MoveDuration);
     }
 }
