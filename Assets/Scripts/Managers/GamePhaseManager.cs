@@ -11,6 +11,8 @@ using UnityEngine.Playables;
 public class GamePhaseManager : MonoBehaviour
 {
     public static GamePhaseManager instance;
+    
+    public Difficulty difficultyManager;
 
     public Animator IntroCameraAnimator;
     public GameObject Player;
@@ -85,6 +87,7 @@ public class GamePhaseManager : MonoBehaviour
             HUD.SetActive(true);
             PlayPostCutSceneBGM();
             enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
         }
 
         if (StartWithTablet){
@@ -215,4 +218,23 @@ public class GamePhaseManager : MonoBehaviour
         Player.transform.position = EndingPos.position;
         Player.transform.LookAt(EndingPos.position + EndingPos.right);
     }
+    
+    
+    private void ApplySavedDifficulty()
+    {
+        int savedDifficulty = PlayerPrefs.GetInt("Difficulty", 0); // Default to easy if not set
+        switch (savedDifficulty)
+        {
+            case 0:
+                difficultyManager.ApplyEasySettings();
+                break;
+            case 1:
+                difficultyManager.ApplyMediumSettings();
+                break;
+            case 2:
+                difficultyManager.ApplyHardSettings();
+                break;
+        }
+    }
+    
 }
