@@ -303,4 +303,10 @@ public class GunSystem : MonoBehaviour
             killCounterText.SetText(killCounter.ToString());
         }
     }
+    
+    public void AddAmmo(int amount)
+    {
+        totalAmmo += amount;
+        Debug.Log($"Added {amount} ammo. Total ammo: {totalAmmo}");
+    }
 }
