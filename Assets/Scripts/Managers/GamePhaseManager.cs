@@ -53,6 +53,7 @@ public class GamePhaseManager : MonoBehaviour
         StartWithFullFuel = false;
 #endif
         if (EnableIntro) {
+            ShowAndUnLockCursor();
             //switch to mainmenu VCam
             FpsVCam.Priority = -1;
             //switch input action map to UI

@@ -6,11 +6,17 @@ using UnityEngine;
 
 public class DoorSwitch : Interactable
 {
-    public Transform Door, Dest;
+    public Transform Door,Dest;
     public float Duration = 1f;
+    public float Distance = 1f;
+
+    private void Start() {
+        PromptUIText = "Open";
+    }
+
     public override void Interact() {
         base.Interact();
-        Door.DOMove(Dest.position, Duration);
+        Door.DOMove(Dest.position, Duration).OnComplete(() => CanInteract = false);
     }
 
 }
