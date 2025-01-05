@@ -148,6 +148,10 @@ public class GamePhaseManager : MonoBehaviour
         //show HUD and enable input
         SwitchCutscene(false);
 
+        enemySpawner.InitiateEnemies();
+        ApplySavedDifficulty();
+        PlayPostCutSceneBGM();
+
         //hide cutscene objects
         CutSceneGO.SetActive(false);
 
@@ -216,9 +220,7 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
-            enemySpawner.InitiateEnemies();
-            ApplySavedDifficulty();
-            PlayPostCutSceneBGM();
+            
         }
     }
 

@@ -15,9 +15,11 @@ public class ItemCollectible : Interactable
 
     public string PostCollectText = "Collected!";
 
+  
+
     public override void Interact()
     {
-        InventoryManager inventory = player.GetComponent<InventoryManager>();
+        InventoryManager inventory = FindFirstObjectByType<InventoryManager>();
             
         if (inventory != null)
         {

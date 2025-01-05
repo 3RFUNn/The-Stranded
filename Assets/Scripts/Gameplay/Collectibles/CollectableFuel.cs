@@ -9,6 +9,7 @@ public class CollectableFuel : ItemCollectible
     public int EnergyValue = 10;
 
     private void Awake() {
+        EnergyCharger = FindFirstObjectByType<EnergyCharger>();
         PromptUIText = "Collect Fuel";
     }
 
