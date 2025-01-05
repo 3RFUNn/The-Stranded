@@ -7,7 +7,7 @@ public class InventoryManager : MonoBehaviour
     public static InventoryManager instance;
 
     public GameObject inventoryUI;
-    public Text bulletsText;
+
     public Text healthText;
 
     private int bullets = 0;
@@ -115,7 +115,6 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdateUI()
     {
-        bulletsText.text = bullets.ToString();
         healthText.text = health.ToString();
     }
 

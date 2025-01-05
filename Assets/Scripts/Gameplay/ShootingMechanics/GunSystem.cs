@@ -257,7 +257,7 @@ public class GunSystem : MonoBehaviour
         }
     }
 
-    private void PlayReloadSound()
+    public void PlayReloadSound()
     {
         if (audioSource != null && reloadSound != null)
         {
