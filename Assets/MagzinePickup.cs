@@ -8,6 +8,7 @@ public class MagzinePickup : MonoBehaviour
     
     public InventoryManager Manager;
 
+
     private void Awake()
     {
         Manager = InventoryManager.instance;
@@ -22,6 +23,7 @@ public class MagzinePickup : MonoBehaviour
         // Check if the colliding object is the player
         if (other.CompareTag("Player") && !isResetCalled)
         {
+            _gamePhaseManager.gunSystem.PlayReloadSound();
             isResetCalled = true;
             Debug.Log("Called Reset Gun!");
            // _gamePhaseManager.gunSystem.ResetGun();
