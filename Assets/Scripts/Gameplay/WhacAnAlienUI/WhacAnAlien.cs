@@ -86,6 +86,6 @@ public class WhacAnAlien : Interactable
             // invoke and clear event
             OnCountdownOver?.Invoke();
         }
-        OnCountdownOver = null;
+        //OnCountdownOver = null;
     }
 }
