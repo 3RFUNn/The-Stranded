@@ -15,7 +15,7 @@ public class GunSystem : MonoBehaviour
     int bulletsLeft, bulletsShot;
 
     //Ammo System
-    public int totalAmmo = 90; // Total ammo carried by the player
+    public int totalAmmo = 50; // Total ammo carried by the player
 
 
     // bools 

@@ -64,6 +64,13 @@ public abstract class BaseEnemy : MonoBehaviour
     protected bool hasSpottedPlayer = false;
     protected bool isMoving = false;
 
+
+    public int attackDamage1
+    {
+        get => attackDamage;
+        set => attackDamage = value;
+    }
+
     #region Initialization
 
     protected virtual void Start()
