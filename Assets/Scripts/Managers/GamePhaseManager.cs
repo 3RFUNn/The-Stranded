@@ -28,6 +28,8 @@ public class GamePhaseManager : MonoBehaviour
     public GunSystem gunSystem;
 
     public EnemySpawnerWithIndividualRange enemySpawner;
+    
+    public int difficulty = 0;
 
     [Header("-----------SETTINGS------------")]
     public bool EnableIntro;

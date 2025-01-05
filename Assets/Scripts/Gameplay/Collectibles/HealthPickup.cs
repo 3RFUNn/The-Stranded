@@ -4,7 +4,7 @@ using DG.Tweening; // Include DOTween namespace
 public class HealthPickup : MonoBehaviour
 {
     PlayerHealth playerHealth; // Reference to the player's health script
-    public int healthBonus = 20; // Amount of health restored
+    public int healthBonus = 10; // Amount of health restored
 
     // Animation settings
     public float bobbingHeight = 0.5f; // Vertical movement height for the bobbing animation
