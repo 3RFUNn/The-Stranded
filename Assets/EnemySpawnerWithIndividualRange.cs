@@ -4,6 +4,7 @@ using UnityEngine.AI;
 
 public class EnemySpawnerWithIndividualRange : MonoBehaviour
 {
+    public Transform player;
     [System.Serializable]
     public class Level
     {
@@ -83,6 +84,11 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
 
     private void SpawnEnemy(Level level, GameObject enemyPrefab)
     {
+        float minimumSpawnDistance = 5f; // Minimum distance between enemies
+        float levelOneDistance = 30f;   // Specific distance for level 1 (index 0)
+        float minimumDistanceFromPlayer = 30f; // Minimum distance from Player
+        bool isLevelOne = levels.IndexOf(level) == 0;
+
         for (int attempt = 0; attempt < 10; attempt++) // Retry up to 10 times to find a valid position
         {
             // Generate a random position within the spawn range
@@ -92,12 +98,21 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
                 Random.Range(-level.spawnRange, level.spawnRange)
             );
 
+            // Adjust for specific conditions
+            if (isLevelOne)
+            {
+                Vector3 direction = (randomPosition - level.levelReference.position).normalized;
+                randomPosition = level.levelReference.position + direction * levelOneDistance;
+            }
+
             Vector3 spawnPosition = GetSpawnPosition(randomPosition);
 
-            // Check if the position is valid and not inside a building
+            // Check all conditions for valid spawn
             if (IsPositionOnNavMesh(spawnPosition) &&
                 IsPositionReachable(level.levelReference.position, spawnPosition) &&
-                !IsInsideBuilding(spawnPosition))
+                !IsInsideBuilding(spawnPosition) &&
+                IsPositionFarEnoughFromOthers(level, spawnPosition, minimumSpawnDistance) &&
+                IsFarEnoughFromPlayer(spawnPosition, minimumDistanceFromPlayer))
             {
                 GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
                 enemy.SetActive(true);
@@ -108,6 +123,37 @@ public class EnemySpawnerWithIndividualRange : MonoBehaviour
         }
 
         Debug.LogWarning($"Failed to find a valid or reachable NavMesh position for an enemy in {level.levelName}.");
+    }
+
+    private bool IsFarEnoughFromPlayer(Vector3 spawnPosition, float minimumDistance)
+    {
+        if (player == null)
+        {
+            Debug.LogWarning("Player reference is not set!");
+            return true; // Default to true if no player reference
+        }
+
+        float distanceFromPlayer = Vector3.Distance(player.position, spawnPosition);
+        return distanceFromPlayer >= minimumDistance;
+    }
+
+    private bool IsPositionFarEnoughFromOthers(Level level, Vector3 position, float minimumDistance)
+    {
+        // Check if the position is far enough from all previously spawned enemies in this level
+        if (!spawnedEnemies.ContainsKey(level)) return true;
+
+        foreach (GameObject enemy in spawnedEnemies[level])
+        {
+            if (enemy == null) continue;
+
+            float distance = Vector3.Distance(position, enemy.transform.position);
+            if (distance < minimumDistance)
+            {
+                return false; // Position is too close to another enemy
+            }
+        }
+
+        return true; // Position is far enough
     }
 
     private Vector3 GetSpawnPosition(Vector3 originalPosition)

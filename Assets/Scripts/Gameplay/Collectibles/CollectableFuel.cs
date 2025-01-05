@@ -9,7 +9,6 @@ public class CollectableFuel : ItemCollectible
     public int EnergyValue = 10;
 
     private void Awake() {
-        EnergyCharger = GameObject.Find("EnergyCharger").GetComponent<EnergyCharger>();
         PromptUIText = "Collect Fuel";
     }
 
