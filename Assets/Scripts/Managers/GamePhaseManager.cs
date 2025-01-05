@@ -209,6 +209,8 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
+            enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
             PlayPostCutSceneBGM();
         }
     }
