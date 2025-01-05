@@ -80,6 +80,8 @@ public class GamePhaseManager : MonoBehaviour
             CutSceneGO.SetActive(true);
             //play audiosource on main camera
             BGM.Play();
+            enemySpawner.InitiateEnemies();
+            ApplySavedDifficulty();
         } else{
             //hide main menu and directly start game
             MainMenu.SetActive(false);
