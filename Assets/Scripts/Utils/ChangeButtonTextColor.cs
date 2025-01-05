@@ -1,21 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ChangeButtonTextColor : MonoBehaviour
 {
     public Color HoveringColor, NormalColor;
-    public TextMeshProUGUI TMP;
+    public Text Text;
 
     private void Start() {
-        TMP = GetComponent<TextMeshProUGUI>();
+        Text = GetComponent<Text>();
     }
     public void OnMouseEnter() {
-        TMP.color = HoveringColor;
+        Text.color = HoveringColor;
     }
 
-    public void OnMouseLeave() { 
-        TMP.color = NormalColor;
+    public void OnMouseLeave() {
+        Text.color = NormalColor;
     }
 }
