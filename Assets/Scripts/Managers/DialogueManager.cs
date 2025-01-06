@@ -1,6 +1,7 @@
 using Ink.Runtime;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,6 +24,14 @@ public class DialogueSystem : MonoBehaviour
     private Talkable _currentTalkable;
     private Coroutine _displayCoroutine;
     private bool _shouldShowImmediately = false;
+    
+    public AudioSource audioSource;
+    public AudioClip monsterRoarClip;
+    public AudioClip bossFightMusicClip;
+
+
+    [SerializeField] private GameObject alien;
+    [SerializeField] private GameObject boss;
 
     private void Awake() {
         instance = this;
@@ -53,11 +62,65 @@ public class DialogueSystem : MonoBehaviour
     public void StartDialogue(TextAsset inkJSON, Talkable talkable) {
         _currentTalkable = talkable;
         Story = new Story(inkJSON.text);
+        
+        // Bind the external functions when starting dialogue
+        BindStoryFunctions();
+        
         DialogueUI.SetActive(true);
         CloseButton.SetActive(false);
         NextButton.SetActive(false);
         HUD.SetActive(false);
         RefreshView();
+    }
+
+    private void BindStoryFunctions()
+    {
+        Story.BindExternalFunction("JoinStranded", () => {
+            Debug.Log("Player chose to join the Stranded");
+            OnJoinStranded();
+        });
+
+        Story.BindExternalFunction("FounderBetrayal", () => {
+            Debug.Log("Founder betrays the player");
+            OnFounderBetrayal();
+        });
+    }
+
+    // Function called when player joins the Stranded
+   private async void OnJoinStranded()
+{
+    // Add your game logic here for joining the Stranded
+    if (_currentTalkable != null)
+    {
+        OnCloseDialogue();
+        await Task.Delay(1000);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(2);
+    }
+}
+
+    // Function called when the founder betrays the player
+    private async void OnFounderBetrayal()
+    {
+        // Add your game logic here for the betrayal sequence
+        if (_currentTalkable != null)
+        {
+            alien.SetActive(false);
+            OnCloseDialogue();
+            
+            await Task.Delay(1000);
+
+            // Play the monster roaring sound
+            audioSource.PlayOneShot(monsterRoarClip);
+
+            // Wait for 3 seconds
+            await Task.Delay(2000);
+
+            // Play the boss fight music
+            audioSource.clip = bossFightMusicClip;
+            audioSource.Play();
+
+            boss.SetActive(true);
+        }
     }
 
     void RefreshView() {
@@ -72,10 +135,10 @@ public class DialogueSystem : MonoBehaviour
             // Display the text on screen.
             DialogueTextUI.text = text;
             NextButton.SetActive(true);
-
         }
+        
         if (Story.currentChoices.Count > 0) {
-            //show our avaliable choices
+            //show our available choices
             NextButton.SetActive(false);
             for (int i = 0; i < Story.currentChoices.Count; i++) {
                 Choice choice = Story.currentChoices[i];
@@ -128,7 +191,6 @@ public class DialogueSystem : MonoBehaviour
         DialogueUI.SetActive(false);
         HUD.SetActive(true);
         _currentTalkable.CanInteract = true;
-        //GamePhaseManager.instance.Input.actions["Next"].performed -= OnNextDialogue;
     }
 
     public void OnNext() {
@@ -139,9 +201,5 @@ public class DialogueSystem : MonoBehaviour
         if (_displayCoroutine != null) {
             _shouldShowImmediately = true;
         }
-        else {
-
-        }
     }
 }
-

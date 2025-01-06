@@ -10,13 +10,14 @@ public class CollectableMessage : Interactable
     public PlayerTablet PlayerTablet;
     void Awake()
     {
-        PromptUIText = "Collect";
+        PromptUIText = "Collect Messsage";
         //PlayerTablet = FindFirstObjectByType<PlayerTablet>();
     }
 
     public override void Interact() {
         base.Interact();
         PlayerTablet.AddMessage(Message);
+        GamePhaseManager.instance.Counter.UpdateMessage();
         Destroy(this.gameObject);
     }
 }

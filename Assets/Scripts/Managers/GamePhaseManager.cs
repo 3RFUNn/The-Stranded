@@ -54,7 +54,7 @@ public class GamePhaseManager : MonoBehaviour
 
     private GameObject _currentUI;
 
-    public FuelCounter fuelCounter;
+    public CollectablesCounter Counter;
 
     public EnergyCharger EnergyCharger;
 
@@ -227,9 +227,6 @@ public class GamePhaseManager : MonoBehaviour
         else { 
             HUD.SetActive(true);
             Input.enabled = true;
-            enemySpawner.InitiateEnemies();
-            ApplySavedDifficulty();
-            PlayPostCutSceneBGM();
             characterMesh.SetActive(true);
         }
     }
