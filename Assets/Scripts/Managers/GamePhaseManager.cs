@@ -58,6 +58,9 @@ public class GamePhaseManager : MonoBehaviour
 
     public EnergyCharger EnergyCharger;
 
+    public GameObject characterMesh;
+
+
 
     private void Awake() {
         instance = this;
@@ -87,6 +90,7 @@ public class GamePhaseManager : MonoBehaviour
             BGM.Play();
             enemySpawner.InitiateEnemies();
             ApplySavedDifficulty();
+            characterMesh.SetActive(false);
         } else{
             //hide main menu and directly start game
             MainMenu.SetActive(false);
@@ -95,6 +99,7 @@ public class GamePhaseManager : MonoBehaviour
             PlayPostCutSceneBGM();
             enemySpawner.InitiateEnemies();
             ApplySavedDifficulty();
+            characterMesh.SetActive(true);
         }
 
         if (StartWithTablet){
@@ -148,11 +153,16 @@ public class GamePhaseManager : MonoBehaviour
         //show HUD and enable input
         SwitchCutscene(false);
 
+        enemySpawner.InitiateEnemies();
+        ApplySavedDifficulty();
+        PlayPostCutSceneBGM();
+
         //hide cutscene objects
         CutSceneGO.SetActive(false);
 
         //switch input action map
         Input.SwitchCurrentActionMap("Player");
+
     }
 
     //freeze time, display cursor, disable in-game inputs
@@ -211,6 +221,7 @@ public class GamePhaseManager : MonoBehaviour
     public void SwitchCutscene(bool isInCutscene){
         if (isInCutscene) {
             HUD.SetActive(false);
+            characterMesh.SetActive(false);
             Input.enabled = false;
         }
         else { 
@@ -219,6 +230,7 @@ public class GamePhaseManager : MonoBehaviour
             enemySpawner.InitiateEnemies();
             ApplySavedDifficulty();
             PlayPostCutSceneBGM();
+            characterMesh.SetActive(true);
         }
     }
 

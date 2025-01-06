@@ -23,6 +23,9 @@ public class InventoryManager : MonoBehaviour
     
     public GamePhaseManager _gamePhaseManager;
 
+    public AudioSource audioSource;
+    public AudioClip audioClip;
+
     private void Awake()
     {
         instance = this;
@@ -43,7 +46,7 @@ public class InventoryManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current.iKey.wasPressedThisFrame && !isMainMenu)
+        if (Keyboard.current.iKey.wasPressedThisFrame)
         {
             ToggleInventory();
         }
@@ -65,6 +68,7 @@ public class InventoryManager : MonoBehaviour
 
     public void ToggleInventory()
     {
+        Debug.Log("Opened Inventory!");
         isInventoryOpen = !isInventoryOpen;
         inventoryUI.SetActive(isInventoryOpen);
 
@@ -96,6 +100,7 @@ public class InventoryManager : MonoBehaviour
     {
         if (bullets > 0)
         {
+            PlaySound();
             bullets--;
 
             bullet.AddAmmo(20);
@@ -108,6 +113,7 @@ public class InventoryManager : MonoBehaviour
     {
         if (health > 0 && _playerHealth.CurrentHealth < 100)
         {
+            PlaySound();
             health--;
 
             _playerHealth.IncreaseHealth(10);
@@ -120,6 +126,13 @@ public class InventoryManager : MonoBehaviour
     {
         magazineCounter.text = bullets.ToString();
         healthText.text = health.ToString();
+    }
+
+    private void PlaySound(){
+        if (audioSource != null && audioClip != null)
+        {
+            audioSource.PlayOneShot(audioClip);
+        }
     }
 
     public void SetMainMenu(bool isMainMenu)

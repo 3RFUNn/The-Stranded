@@ -44,9 +44,15 @@ public class EnergyCharger : Interactable
         base.Interact();
         if(EnergyInventory != 0){
             RechargingVCam.Priority = 20;
-            int remain = (EnergyInventory + (int)EnergySlider.value) % 100;
+            int remain;
+            if(EnergyInventory + (int)EnergySlider.value > 100){
+                remain = (EnergyInventory + (int)EnergySlider.value) % 100;
+            }
+            else{
+                remain = 0;
+            }
             DOTween.To(() => EnergySlider.value, x => EnergySlider.value = x, Mathf.Min(EnergySlider.value + EnergyInventory, 100), 1.5f)
-                .SetEase(Ease.OutQuint)
+                .SetEase(Ease.OutCubic)
                 .OnComplete(()=>{
                     if (EnergySlider.value + EnergyInventory > 100f) {
                         UnlockEnding();

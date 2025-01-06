@@ -15,6 +15,9 @@ public class Movement : MonoBehaviour
     private bool isCrouching;
 
     public bool isRunning;
+
+    [SerializeField] private Animator playerAnimator;
+
     [SerializeField]
     private Vector2 lookDir;
 
@@ -96,11 +99,21 @@ public class Movement : MonoBehaviour
             plannedRotate = -90f;
         }
         CameraTransform.localEulerAngles = new Vector3(plannedRotate, 0, 0);
+        IsIdle();
     }
 
     public void OnMove(InputAction.CallbackContext callbackContext)
     {
+        playerAnimator.SetBool("Idle", false);
+        playerAnimator.SetBool("Walk", true);
         moveDir = callbackContext.ReadValue<Vector2>();
+    }
+
+    public bool IsIdle()
+    {
+        playerAnimator.SetBool("Idle", true);
+        playerAnimator.SetBool("Walk", false);
+        return !isRunning && !isCrouching && moveDir == Vector2.zero;
     }
 
     public void OnLook(InputAction.CallbackContext callbackContext)
@@ -123,8 +136,8 @@ public class Movement : MonoBehaviour
             isCrouching = true;
             characterController.height = 1;
             characterController.center -= new Vector3(0, 0.5f, 0);
-            standMesh.enabled = false;
-            crouchMesh.enabled = true;
+            // standMesh.enabled = false;
+            // crouchMesh.enabled = true;
             CameraTransform.position -= new Vector3(0, 0.75f, 0);
         }
         else if (callbackContext.canceled)
@@ -132,8 +145,8 @@ public class Movement : MonoBehaviour
             isCrouching = false;
             characterController.height = 2;
             characterController.center = Vector3.zero;
-            crouchMesh.enabled = false;
-            standMesh.enabled = true;
+            // crouchMesh.enabled = false;
+            // standMesh.enabled = true;
             CameraTransform.position += new Vector3(0, 0.75f, 0);
         }
     }
@@ -142,10 +155,14 @@ public class Movement : MonoBehaviour
     {
         if (callbackContext.started && isGrounded())
         {
+            playerAnimator.SetBool("Idle", false);
+            playerAnimator.SetBool("Walk", true);
             isRunning = true;
         }
         else if (callbackContext.canceled || !isGrounded())
         {
+            playerAnimator.SetBool("Idle", true);
+            playerAnimator.SetBool("Walk", false);
             isRunning = false;
         }
     }

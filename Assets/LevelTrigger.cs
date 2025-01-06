@@ -7,7 +7,7 @@ public class LevelTrigger : MonoBehaviour
     [SerializeField] int level = 2;
     private void OnTriggerEnter(Collider other) {
         if(other.CompareTag("Player")){
-            if(AppHelper.CurrentLevel < 2){
+            if(AppHelper.CurrentLevel < level){
                 AppHelper.CurrentLevel = level;
             }
         }

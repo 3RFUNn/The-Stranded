@@ -159,7 +159,7 @@ public class GunSystem : MonoBehaviour
             }
             else
             {
-                if (!rayHit.collider.CompareTag("InvisibleObject"))
+                if (!rayHit.collider.CompareTag("InvisibleObject") && !rayHit.collider.CompareTag("Player"))
                 {
                     if (rayHit.collider.CompareTag("Sand"))
                     {
