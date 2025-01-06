@@ -20,6 +20,8 @@ public static class AppHelper
 
     public static int CurrentLevel = 1;
 
+    public static bool HasTalkedFinalNPC = false;
+
     // Example of a method to reset the data
     public static void ResetData()
     {
