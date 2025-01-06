@@ -13,6 +13,7 @@ public class CollectablesCounter : MonoBehaviour{
     public int currentMessage = -1;
 
     public CinemachineVirtualCamera ShipDoorVCam;
+    public LayerMask SpaceshipInterior;
     public SlideDoor Door;
 
     [SerializeField] TextMeshProUGUI FuelCountText;
@@ -20,7 +21,7 @@ public class CollectablesCounter : MonoBehaviour{
 
     void Start() {
         UpdateFuel();
-        //UpdateMessage();
+        UpdateMessage();
     }
 
     public void UpdateFuel(){
@@ -32,13 +33,21 @@ public class CollectablesCounter : MonoBehaviour{
         currentMessage++;
         MessageCountText.text = $"{currentMessage}/{requiredMessage}";
         if (currentMessage == requiredMessage){
+            GamePhaseManager.instance.SwitchCutscene(true);
             Time.timeScale = 0f;
-            await Task.Delay(1000);
+            await Task.Delay(500);
+
+            LayerMask mask = Camera.main.cullingMask;
+            Camera.main.cullingMask = SpaceshipInterior;
             ShipDoorVCam.Priority = 20;
-            await Task.Delay(800);
+            await Task.Delay(1000);
+
             Door.Open();
-            await Task.Delay(3000);
+            await Task.Delay((int)Door.MoveDuration * 1000 + 1000);
+
+            Camera.main.cullingMask = mask;
             ShipDoorVCam.Priority = 10;
+            GamePhaseManager.instance.SwitchCutscene(false);
             Time.timeScale = 1f;
         }
     }
