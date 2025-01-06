@@ -27,11 +27,13 @@ public class DialogueSystem : MonoBehaviour
     
     public AudioSource audioSource;
     public AudioClip monsterRoarClip;
-    public AudioClip bossFightMusicClip;
+    
 
 
     [SerializeField] private GameObject alien;
     [SerializeField] private GameObject boss;
+
+    [SerializeField] private GameObject[] magazine;
 
     private void Awake() {
         instance = this;
@@ -116,10 +118,12 @@ public class DialogueSystem : MonoBehaviour
             await Task.Delay(2000);
 
             // Play the boss fight music
-            audioSource.clip = bossFightMusicClip;
+            
             audioSource.Play();
 
             boss.SetActive(true);
+            magazine[0].SetActive(true);
+            magazine[1].SetActive(true);
         }
     }
 
