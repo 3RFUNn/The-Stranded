@@ -43,7 +43,7 @@ public class InventoryManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current.iKey.wasPressedThisFrame && !isMainMenu)
+        if (Keyboard.current.iKey.wasPressedThisFrame)
         {
             ToggleInventory();
         }
@@ -65,6 +65,7 @@ public class InventoryManager : MonoBehaviour
 
     public void ToggleInventory()
     {
+        Debug.Log("Opened Inventory!");
         isInventoryOpen = !isInventoryOpen;
         inventoryUI.SetActive(isInventoryOpen);
 
