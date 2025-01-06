@@ -22,6 +22,6 @@ public class CollectableFuel : ItemCollectible
     }
 
     private void UpdateFuel(){
-        GamePhaseManager.instance.fuelCounter.UpdateFuel();
+        GamePhaseManager.instance.Counter.UpdateFuel();
     }
 }
