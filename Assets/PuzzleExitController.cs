@@ -15,14 +15,20 @@ public class PuzzleExitController : MonoBehaviour
 
     private bool hasCalled = false;
 
+    public bool isSpaceShip = false;
+
 
     void OnTriggerEnter(Collider other)
     {
         // Check if the colliding object is the player
         if (other.CompareTag("Player") && !hasCalled && AppHelper.HasTalkedFinalNPC)
         {
-            hasCalled = true;
-            ExitTemple();
+            if(isSpaceShip){
+                UnityEngine.SceneManagement.SceneManager.LoadScene(1);
+            }else{
+                hasCalled = true;
+                ExitTemple();
+            }
         }
     }
 
