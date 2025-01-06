@@ -36,6 +36,9 @@ public class EndingController : MonoBehaviour
                            .OnComplete(() => EndingTexts[index].gameObject.SetActive(false)); // Disable after fade out
         }
 
+        // Add application exit after the last sequence
+        endingSequence.OnComplete(() => Application.Quit());
+
         // Start the sequence
         endingSequence.Play();
     }

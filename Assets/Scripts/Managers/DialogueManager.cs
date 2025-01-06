@@ -1,6 +1,7 @@
 using Ink.Runtime;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,6 +24,14 @@ public class DialogueSystem : MonoBehaviour
     private Talkable _currentTalkable;
     private Coroutine _displayCoroutine;
     private bool _shouldShowImmediately = false;
+    
+    public AudioSource audioSource;
+    public AudioClip monsterRoarClip;
+    public AudioClip bossFightMusicClip;
+
+
+    [SerializeField] private GameObject alien;
+    [SerializeField] private GameObject boss;
 
     private void Awake() {
         instance = this;
@@ -78,22 +87,39 @@ public class DialogueSystem : MonoBehaviour
     }
 
     // Function called when player joins the Stranded
-    private void OnJoinStranded()
+   private async void OnJoinStranded()
+{
+    // Add your game logic here for joining the Stranded
+    if (_currentTalkable != null)
     {
-        // Add your game logic here for joining the Stranded
-        if (_currentTalkable != null)
-        {
-            OnCloseDialogue();
-        }
+        OnCloseDialogue();
+        await Task.Delay(1000);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(2);
     }
+}
 
     // Function called when the founder betrays the player
-    private void OnFounderBetrayal()
+    private async void OnFounderBetrayal()
     {
         // Add your game logic here for the betrayal sequence
         if (_currentTalkable != null)
         {
+            alien.SetActive(false);
             OnCloseDialogue();
+            
+            await Task.Delay(1000);
+
+            // Play the monster roaring sound
+            audioSource.PlayOneShot(monsterRoarClip);
+
+            // Wait for 3 seconds
+            await Task.Delay(2000);
+
+            // Play the boss fight music
+            audioSource.clip = bossFightMusicClip;
+            audioSource.Play();
+
+            boss.SetActive(true);
         }
     }
 

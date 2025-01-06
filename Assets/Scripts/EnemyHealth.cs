@@ -14,6 +14,7 @@ public class EnemyHealth : MonoBehaviour
     public GameObject healthBoostPrefab;
 
     public GameObject MagzinePrefab;
+    public GameObject key;
     public float spawnDelay = 3f;
     [SerializeField] private GameObject parent;
     private EnemyLoot loot;
@@ -55,6 +56,9 @@ public class EnemyHealth : MonoBehaviour
                 case "Coward":
                     StartCoroutine(SpawnMagzineWithDelay());
                     break;
+                case "Boss":
+                    
+                    break;
             }
            
             //Instantiate(healthBoostPrefab, transform.position, Quaternion.identity);
@@ -74,6 +78,13 @@ public class EnemyHealth : MonoBehaviour
         magzinePickup.Initialize(GamePhaseManager.instance);
     }
     
+    IEnumerator SpawnKeyWithDelay()
+    {
+        yield return new WaitForSeconds(spawnDelay);
+        MagzinePickup magzinePickup = Instantiate(key, transform.position, Quaternion.identity).GetComponent<MagzinePickup>();
+        
+    }
+    
     
     public void DropLoot()
     {
@@ -86,6 +97,9 @@ public class EnemyHealth : MonoBehaviour
                 break;
             case "Coward":
                 itemToDrop = healthTokenPrefab;
+                break;
+            case "Boss":
+                itemToDrop = key;
                 break;
         }
 
