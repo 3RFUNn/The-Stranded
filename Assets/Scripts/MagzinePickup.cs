@@ -6,13 +6,8 @@ public class MagzinePickup : MonoBehaviour
     private bool isResetCalled = false;
     private GamePhaseManager _gamePhaseManager;
     
-    public InventoryManager Manager;
+    private InventoryManager Manager;
 
-
-    private void Awake()
-    {
-        Manager = InventoryManager.instance;
-    }
 
     public void Initialize(GamePhaseManager gamePhaseManager)
     {
@@ -23,6 +18,11 @@ public class MagzinePickup : MonoBehaviour
         // Check if the colliding object is the player
         if (other.CompareTag("Player") && !isResetCalled)
         {
+            if(GamePhaseManager.instance != null)
+            {
+                _gamePhaseManager = GamePhaseManager.instance;
+            }
+            Manager = _gamePhaseManager.inventoryManager;
             _gamePhaseManager.gunSystem.PlayReloadSound();
             isResetCalled = true;
             Debug.Log("Called Reset Gun!");
