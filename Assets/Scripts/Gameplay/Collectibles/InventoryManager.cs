@@ -23,6 +23,9 @@ public class InventoryManager : MonoBehaviour
     
     public GamePhaseManager _gamePhaseManager;
 
+    public AudioSource audioSource;
+    public AudioClip audioClip;
+
     private void Awake()
     {
         instance = this;
@@ -119,8 +122,16 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdateUI()
     {
+        PlaySound();
         magazineCounter.text = bullets.ToString();
         healthText.text = health.ToString();
+    }
+
+    private void PlaySound(){
+        if (audioSource != null && audioClip != null)
+        {
+            audioSource.PlayOneShot(audioClip);
+        }
     }
 
     public void SetMainMenu(bool isMainMenu)
