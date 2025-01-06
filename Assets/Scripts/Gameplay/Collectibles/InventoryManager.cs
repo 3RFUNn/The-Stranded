@@ -100,6 +100,7 @@ public class InventoryManager : MonoBehaviour
     {
         if (bullets > 0)
         {
+            PlaySound();
             bullets--;
 
             bullet.AddAmmo(20);
@@ -112,6 +113,7 @@ public class InventoryManager : MonoBehaviour
     {
         if (health > 0 && _playerHealth.CurrentHealth < 100)
         {
+            PlaySound();
             health--;
 
             _playerHealth.IncreaseHealth(10);
@@ -122,7 +124,6 @@ public class InventoryManager : MonoBehaviour
 
     private void UpdateUI()
     {
-        PlaySound();
         magazineCounter.text = bullets.ToString();
         healthText.text = health.ToString();
     }
